@@ -5,6 +5,7 @@ CXX ?= g++
 LD = $(CXX)
 LIBS = -lglut -lGL -lGLU
 LDFLAGS = -Wl,-O3 $(LIBS)
+CPPFLAGS = -DNDEBUG
 
 ifeq ($(PROF),1)
 LDFLAGS += -pg
