@@ -32,7 +32,6 @@ const unsigned Dimensions = 2;
 // general constants to tweak computation of F
 const auto ETA = 10.f; // settings this one higher leads to more "clumping"
 const auto DIST_FACT = 6.f;
-const auto GFAC = 1.f;
 const auto G = 1e-4f; //6.6742e-11f;
 const auto BETA = 0.9f;
 const auto DT = 1.0f;
@@ -146,7 +145,7 @@ struct Node
    Vec corner;
    Vec center;      // of mass
    flt mass;        // accumulated mass of all children
-   u32 body;        // -1 if empty, else index of body in universe
+   u32 body;        // index of body or State
    flt size;        // edge length of the square
 
    Node()
@@ -295,10 +294,10 @@ Vec compute_force(flt const x0, flt const y0, flt const m0,
    // computation of F
    const auto dx = x1 - x0;
    const auto dy = y1 - y0;
-   const auto r = (std::sqrt(dx * dx + dy * dy) + ETA) * DIST_FACT;
-   const auto F = G * m0 * m1 / std::pow(r, GFAC);
+   const auto r = 1.f / ((std::sqrt(dx * dx + dy * dy) + ETA) * DIST_FACT);
+   const auto F = G * m0 * m1 * r;
 
-   return Vec{{ F * dx / r, F * dy / r }};
+   return Vec{{ F * dx * r, F * dy * r }};
 }
 
 Vec compute_force(Body const &i, Body const &j)
