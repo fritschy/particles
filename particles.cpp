@@ -195,6 +195,23 @@ Quad quadrant_for_body(Universe const &u, Node const &q, u32 b, Vec &coff)
    return Quad(west | (south << 1));
 }
 
+void bhtree_insert(Universe &u, u32 q, u32 b);
+
+void bhtree_insert_next(Universe &u, u32 q, u32 b)
+{
+   // mass and center are set to the data of the one contained body, just keep it.
+   Vec coff;
+   Quad quad = quadrant_for_body(u, u.nodes[q], b, coff);
+
+   if (! u.nodes[q].childs[quad])
+   {
+      u.nodes.push_back(Node(u.nodes[q].corner + coff(quad), u.nodes[q].size / 2));
+      u.nodes[q].childs[quad] = u.nodes.size() - 1;
+   }
+
+   bhtree_insert(u, u.nodes[q].childs[quad], b);
+}
+
 void bhtree_insert(Universe &u, u32 q, u32 b)
 {
    if (u.nodes[q].body == Node::Empty) // insert
@@ -207,23 +224,8 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
 
    if (u.nodes[q].body != Node::Internal) // leaf, need to subdivide and insert
    {
-      u32 body = u.nodes[q].body;
-
-      // mass and center are set to the data of the one contained body, just keep it.
-      Vec coff;
-      Quad quad = quadrant_for_body(u, u.nodes[q], body, coff);
-
-      if (! u.nodes[q].childs[quad])
-      {
-         u.nodes.push_back(Node(u.nodes[q].corner + coff(quad), u.nodes[q].size / 2));
-         u.nodes[q].childs[quad] = u.nodes.size() - 1;
-      }
-
-      bhtree_insert(u, u.nodes[q].childs[quad], body);
+      bhtree_insert_next(u, q, u.nodes[q].body);
    }
-
-   Vec coff;
-   Quad quad = quadrant_for_body(u, u.nodes[q], b, coff);
 
    // update current node
    const auto m = u.nodes[q].mass + u.bodies[b].mass;
@@ -231,13 +233,7 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
    u.nodes[q].mass   = m;
    u.nodes[q].body   = Node::Internal;
 
-   if (! u.nodes[q].childs[quad])
-   {
-      u.nodes.push_back(Node(u.nodes[q].corner + coff(quad), u.nodes[q].size / 2));
-      u.nodes[q].childs[quad] = u.nodes.size() - 1;
-   }
-
-   bhtree_insert(u, u.nodes[q].childs[quad], b);
+   bhtree_insert_next(u, q, b);
 }
 
 void populate_universe(Universe &u, size_t body_count)
