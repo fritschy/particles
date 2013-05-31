@@ -1,10 +1,20 @@
-OPT = -O3 -march=native -flto
+OPT = -O3 -march=native
 WARN = -Wall -Wextra
 CXXFLAGS = -std=c++11 $(OPT) $(WARN)
 CXX ?= g++
 LD = $(CXX)
 LIBS = -lglut -lGL -lGLU
-LDFLAGS = -flto $(LIBS)
+LDFLAGS = -Wl,-O3 $(LIBS)
+
+ifeq ($(PROF),1)
+LDFLAGS += -pg
+CXXFLAGS += -pg
+endif
+
+ifeq ($(LTO),1)
+LDFLAGS += -flto
+CXXFLAGS += -flto
+endif
 
 all: particles
 
