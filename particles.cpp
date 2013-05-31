@@ -138,16 +138,14 @@ struct Node
 {
    enum State
    {
-      Empty,
-      Internal,
-      Leaf
+      Empty    = u32(-2),
+      Internal = u32(-1)
    };
 
    u32 childs[4];
    Vec corner;
    Vec center;      // of mass
    flt mass;        // accumulated mass of all children
-   State state;
    u32 body;        // -1 if empty, else index of body in universe
    flt size;        // edge length of the square
 
@@ -156,8 +154,7 @@ struct Node
       , corner()
       , center()
       , mass()
-      , state(Empty)
-      , body(u32(-1))
+      , body(Empty)
       , size()
    {
    }
@@ -167,8 +164,7 @@ struct Node
       , corner(cornr)
       , center()
       , mass()
-      , state(Empty)
-      , body(u32(-1))
+      , body(Empty)
       , size(sz)
    {
    }
@@ -202,16 +198,15 @@ Quad quadrant_for_body(Universe const &u, Node const &q, u32 b, Vec &coff)
 
 void bhtree_insert(Universe &u, u32 q, u32 b)
 {
-   if (u.nodes[q].state == Node::Empty) // insert
+   if (u.nodes[q].body == Node::Empty) // insert
    {
       u.nodes[q].body = b;
       u.nodes[q].mass = u.bodies[b].mass;
       u.nodes[q].center = u.bodies[b].pos;
-      u.nodes[q].state = Node::Leaf;
       return;
    }
 
-   if (u.nodes[q].state != Node::Internal) // leaf, need to subdivide and insert
+   if (u.nodes[q].body != Node::Internal) // leaf, need to subdivide and insert
    {
       u32 body = u.nodes[q].body;
 
@@ -235,8 +230,7 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
    const auto m = u.nodes[q].mass + u.bodies[b].mass;
    u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies.at(b).pos * u.bodies.at(b).mass) / m;
    u.nodes[q].mass   = m;
-   u.nodes[q].state  = Node::Internal;
-   u.nodes[q].body = u32(-1);
+   u.nodes[q].body   = Node::Internal;
 
    if (! u.nodes[q].childs[quad])
    {
@@ -334,7 +328,7 @@ void compute_acceleration(Body &i, Node const &j)
 
 void update_body(Universe &u, u32 q, u32 b)
 {
-   if (u.nodes[q].state == Node::Leaf && u.nodes[q].body != b)
+   if (u.nodes[q].body != Node::Internal && u.nodes[q].body != b)
    {
       compute_acceleration(u.bodies[b], u.nodes[q]);
       return;
@@ -394,10 +388,10 @@ void show_bhtree(Universe &u)
    std::for_each(u.nodes.cbegin(), u.nodes.cend(),
          [u](Node const &q) {
             return;
-            if (q.state == Node::Empty)
+            if (q.body == Node::Empty)
                return;
 
-            if (q.state == Node::Internal)
+            if (q.body == Node::Internal)
                return;
 
             flt v[2] = { q.corner[0], q.corner[1] };
