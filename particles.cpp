@@ -274,7 +274,7 @@ void populate_universe(Universe &u, size_t body_count)
 {
    u = Universe();
    u.size = max_coord;
-   u.dt = 0.05 * DT;
+   u.dt = 0.025 * DT;
    u.show_tree = false;
    u.bruteforce = false;
 
@@ -482,7 +482,7 @@ void cb_display(void)
    glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT);
 
-   glPointSize(2.f);
+   glPointSize(1.f);
 
    show_bhtree(*uni);
 
@@ -543,6 +543,30 @@ void cb_keyboard(unsigned char k, int, int)
       }
       break;
 
+   case 'c':
+      uni->bodies.clear();
+      uni->nodes.clear();
+      break;
+
+   case 'h':
+      {
+         for (int i = 0; i < 100; i++)
+         {
+            Vec pos;
+            do {
+               pos = Vec{{frnd(2)-1, frnd(2)-1}} * uni->size;
+            } while (pos[0]*pos[0] + pos[1]*pos[1] > uni->size * uni->size);
+
+            uni->bodies.insert(uni->bodies.end(), Body{
+               pos,
+               Vec(),
+               Vec(),
+               frnd(max_mass - min_mass) + min_mass
+            });
+         }
+      }
+      break;
+
    case 'b':
       uni->bruteforce = !uni->bruteforce;
       break;
@@ -571,7 +595,7 @@ void run_glut(int argc, char **argv, Universe &u)
 int main(int argc, char **argv)
 {
    bh::Universe u;
-   bh::populate_universe(u, 5000);
+   bh::populate_universe(u, 15000);
 
    run_glut(argc, argv, u);
 
