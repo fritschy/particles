@@ -321,12 +321,12 @@ Vec compute_force(Body const &i, Node const &j)
    return compute_force(i.pos[0], i.pos[1], i.mass, j.center[0], j.center[1], j.mass);
 }
 
-void compute_acceleration(Body &i, Body &j)
+void compute_acceleration(Body &i, Body const &j)
 {
    const Vec F = compute_force(i, j);
 
    i.acc += F / i.mass;
-   j.acc -= F / j.mass;
+   /* j.acc -= F / j.mass; */
 }
 
 void compute_acceleration(Body &i, Node const &j)
