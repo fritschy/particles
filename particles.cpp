@@ -507,6 +507,14 @@ void cb_keyboard(unsigned char k, int, int)
    case 't':
       uni->show_tree = !uni->show_tree;
       break;
+
+   case 'R':
+      {
+         bool st = uni->show_tree;
+         populate_universe(*uni, uni->bodies.size());
+         uni->show_tree = st;
+      }
+      break;
    }
 }
 
