@@ -32,7 +32,7 @@ const unsigned Dimensions = 2;
 // general constants to tweak computation of F
 const auto ETA = 0.f; // settings this one higher leads to more "clumping"
 const auto DIST_FACT = 8.f;
-const auto G = 1e-5f; //6.6742e-11f;
+const auto G = 1e-4f; //6.6742e-11f;
 const auto BETA = 0.5f;
 const auto DT = 1.0f;
 
@@ -237,11 +237,11 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
    bhtree_insert_next(u, q, b);
 }
 
-void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_count, std::vector<Body> &res)
+void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_count, std::vector<Body> &res, flt rot)
 {
    res.resize(body_count);
    std::generate(res.begin(), res.end(),
-         [u, body_count, center, size, velocity]() -> Body {
+         [u, body_count, center, size, velocity, rot]() -> Body {
             /* Vec pos; */
             flt x = frnd(size * 0.7f) + size * 0.01f;
             flt phi = flt(frnd(2 * M_PI));
@@ -250,7 +250,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
             Vec pos = Vec{{1, 0}};
             // body_count / 1000.f normalizes the whole thing to my testing
             // number of 1000 bodies.
-            Vec vel = Vec{{0, std::sqrt(G * mass * (body_count / 1000.f) * x / 70)}};
+            Vec vel = Vec{{0, rot * std::sqrt(G * mass * (body_count / 1000.f) * x / 30)}};
 
             /* Vec vel = Vec{{0, std::sqrt(G * mass * (max_mass * body_count / 250000000.f))}}; */
             //Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.00036125f)}};
@@ -279,8 +279,8 @@ void populate_universe(Universe &u, size_t body_count)
    u.bodies.resize(body_count);
 
    std::vector<Body> a, b;
-   create_galaxy(u, Vec{{-250,  250}}, Vec{{15,0}} * (body_count / 1e5f), 300, body_count / 4, a);
-   create_galaxy(u, Vec{{ 250, -250}}, Vec{{-7.5,0}} * (body_count / 1e5f), 600, body_count * 3 / 4, b);
+   create_galaxy(u, Vec{{-250,  250}}, Vec{{15,0}} * 4 * DIST_FACT * (body_count / 1e5f), 50, body_count / 4, a, 1.f);
+   create_galaxy(u, Vec{{ 250, -250}}, Vec{{-7.5,0}} * 4 * DIST_FACT * (body_count / 1e5f), 300, body_count * 3 / 4, b, -1.f);
 
    u.bodies.swap(a);
    u.bodies.insert(u.bodies.end(), b.cbegin(), b.cend());
@@ -333,14 +333,6 @@ Vec compute_force(Body const &i, Body const &j)
 Vec compute_force(Body const &i, Node const &j)
 {
    return compute_force(i.pos[0], i.pos[1], i.mass, j.center[0], j.center[1], j.mass);
-}
-
-void compute_acceleration(Body &i, Body const &j)
-{
-   const Vec F = compute_force(i, j);
-
-   i.acc += F / i.mass;
-   /* j.acc -= F / j.mass; */
 }
 
 void compute_acceleration(Body &i, Node const &j)
@@ -460,7 +452,7 @@ void cb_display(void)
    glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT);
 
-   glPointSize(2.f);
+   glPointSize(1.f);
 
    show_bhtree(*uni);
 
@@ -536,7 +528,7 @@ void run_glut(int argc, char **argv, Universe &u)
 int main(int argc, char **argv)
 {
    bh::Universe u;
-   bh::populate_universe(u, 20000);
+   bh::populate_universe(u, 10000);
 
    run_glut(argc, argv, u);
 
