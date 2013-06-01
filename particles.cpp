@@ -377,10 +377,15 @@ void update_forces(Universe &u)
 
 void update_leapfrog(Universe &u)
 {
-   std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { b.pos += b.vel * 0.5f * u.dt; });
    update_forces(u);
-   std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { b.vel += b.acc * u.dt; });
-   std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { b.pos += b.vel * 0.5f * u.dt; });
+
+   const auto dt = u.dt;
+
+   std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
+         b.pos += b.vel * 0.5f * dt;
+         b.vel += b.acc * dt;
+         b.pos += b.vel * 0.5f * dt;
+   });
 }
 
 void update(Universe &u)
