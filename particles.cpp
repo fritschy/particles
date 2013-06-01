@@ -5,7 +5,7 @@
 #include <ctime>
 
 #include <iterator>
-#include <algorithm>
+#include <parallel/algorithm>
 #include <vector>
 #include <memory>
 
@@ -387,6 +387,7 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 
 void update_forces(Universe &u)
 {
+#pragma omp parallel for schedule(static,500)
    for (u32 i = 0; i < u.bodies.size(); i++)
    {
       u.bodies[i].acc = Vec();

@@ -1,4 +1,4 @@
-OPT = -O2 -march=native
+OPT = -O3 -march=native
 WARN = -Wall -Wextra
 CXXFLAGS = -std=c++11 $(OPT) $(WARN)
 CXX ?= g++
@@ -15,6 +15,16 @@ endif
 ifeq ($(LTO),1)
 LDFLAGS += -flto
 CXXFLAGS += -flto
+endif
+
+ifeq ($(OPENMP),1)
+LDFLAGS += -fopenmp
+CXXFLAGS += -fopenmp
+else
+ifeq ($(CXX),g++)
+LDFLAGS += -fopenmp
+CXXFLAGS += -fopenmp
+endif
 endif
 
 all: particles
