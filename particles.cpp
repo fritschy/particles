@@ -4,7 +4,12 @@
 #include <cassert>
 #include <ctime>
 
+#ifdef _OPENMP
 #include <parallel/algorithm>
+#else
+#include <algorithm>
+#endif
+
 #include <iterator>
 #include <vector>
 #include <memory>
