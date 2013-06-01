@@ -579,7 +579,7 @@ void run_glut(int argc, char **argv, Universe &u)
    uni = &u;
 
    glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
    glutInitWindowSize(400, 400);
    glutCreateWindow("Barnes-Hut");
 
@@ -595,12 +595,17 @@ void run_glut(int argc, char **argv, Universe &u)
 
 int main(int argc, char **argv)
 {
+   bh::u32 body_count = 5000;
+   if (argv[1])
+   {
+      int bc = atoi(argv[1]);
+      if (bc > 0 && bc < 1000000)
+         body_count = bh::u32(bc);
+   }
+
    bh::Universe u;
-   bh::populate_universe(u, 15000);
-
+   bh::populate_universe(u, body_count);
    run_glut(argc, argv, u);
-
-   bh::depopulate_bhtree(u);
 
    return 0;
 }
