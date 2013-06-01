@@ -1,4 +1,4 @@
-OPT = -O3 -march=native
+OPT = -O2 -march=native
 WARN = -Wall -Wextra
 CXXFLAGS = -std=c++11 $(OPT) $(WARN)
 CXX ?= g++
