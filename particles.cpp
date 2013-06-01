@@ -30,10 +30,10 @@ namespace bh
 const unsigned Dimensions = 2;
 
 // general constants to tweak computation of F
-const auto ETA = 10.f; // settings this one higher leads to more "clumping"
+const auto ETA = 4.f; // settings this one higher leads to more "clumping"
 const auto DIST_FACT = 6.f;
 const auto G = 1e-4f; //6.6742e-11f;
-const auto BETA = 0.9f;
+const auto BETA = 0.5f;
 const auto DT = 1.0f;
 
 const auto max_coord = 1000.f;
@@ -199,7 +199,6 @@ void bhtree_insert(Universe &u, u32 q, u32 b);
 
 void bhtree_insert_next(Universe &u, u32 q, u32 b)
 {
-   // mass and center are set to the data of the one contained body, just keep it.
    Vec coff;
    Quad quad = quadrant_for_body(u, u.nodes[q], b, coff);
 
@@ -244,16 +243,29 @@ void populate_universe(Universe &u, size_t body_count)
 
    u.bodies.resize(body_count);
    std::generate(u.bodies.begin(), u.bodies.end(),
-         [u]() -> Body {
-            Vec pos;
-            do {
-               pos = Vec{{frnd(max_coord * 2)-max_coord, frnd(max_coord * 2)-max_coord}};
-            } while (pos[0]*pos[0] + pos[1]*pos[1] > u.size*u.size);
+         [u, body_count]() -> Body {
+            /* Vec pos; */
+            flt x = frnd(700) + 5.f;
+            flt phi = flt(frnd(2 * M_PI));
+            flt mass = frnd(max_mass - min_mass)+min_mass;
+
+            Vec pos = Vec{{1, 0}};
+            // body_count / 1000.f normalizes the whole thing to my testing
+            // number of 1000 bodies.
+            Vec vel = Vec{{0, std::sqrt(G * mass * (body_count / 1000.f) * x / 30)}};
+            //Vec vel = Vec{{0, std::sqrt(G * mass_sum / 100.f)}};
+
+            Vec r = Vec{{std::cos(phi), std::sin(phi)}};
+            Vec p = Vec{{pos[0]*r[0]-pos[1]*r[1],pos[0]*r[1]+pos[1]*r[0]}};
+            Vec v = Vec{{vel[0]*r[0]-vel[1]*r[1],vel[0]*r[1]+vel[1]*r[0]}};
+
+            pos = p * x;
+            vel = v;
 
             return Body{pos,
+                        vel,
                         Vec(),
-                        Vec(),
-                        frnd(max_mass - min_mass)+min_mass};
+                        mass};
          });
 
    /* std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { }); */
@@ -382,7 +394,7 @@ void show_bhtree(Universe &u)
    glColor3f(0,0.3,0);
    std::for_each(u.nodes.cbegin(), u.nodes.cend(),
          [u](Node const &q) {
-            return;
+            /* return; */
             if (q.body == Node::Empty)
                return;
 
@@ -437,10 +449,10 @@ void cb_idle(void)
    update(*uni);
    glutPostRedisplay();
 
-   static int frames = 0;
-   frames++;
-   if (frames == 1000)
-      exit(0);
+   /* static int frames = 0; */
+   /* frames++; */
+   /* if (frames == 1000) */
+   /*    exit(0); */
 }
 
 void run_glut(int argc, char **argv, Universe &u)
@@ -464,7 +476,7 @@ void run_glut(int argc, char **argv, Universe &u)
 int main(int argc, char **argv)
 {
    bh::Universe u;
-   bh::populate_universe(u, 10000);
+   bh::populate_universe(u, 500);
 
    run_glut(argc, argv, u);
 
