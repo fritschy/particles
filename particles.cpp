@@ -30,7 +30,7 @@ namespace bh
 const unsigned Dimensions = 2;
 
 // general constants to tweak computation of F
-const auto ETA = 4.f; // settings this one higher leads to more "clumping"
+const auto ETA = 0.f; // settings this one higher leads to more "clumping"
 const auto DIST_FACT = 6.f;
 const auto G = 1e-4f; //6.6742e-11f;
 const auto BETA = 0.5f;
@@ -391,30 +391,30 @@ Universe *uni;
 
 void show_bhtree(Universe &u)
 {
-   glColor3f(0,0.3,0);
-   std::for_each(u.nodes.cbegin(), u.nodes.cend(),
-         [u](Node const &q) {
-            /* return; */
-            if (q.body == Node::Empty)
-               return;
+   /* glColor3f(0,0.3,0); */
+   /* std::for_each(u.nodes.cbegin(), u.nodes.cend(), */
+   /*       [u](Node const &q) { */
+   /*          /1* return; *1/ */
+   /*          if (q.body == Node::Empty) */
+   /*             return; */
 
-            if (q.body == Node::Internal)
-               return;
+   /*          if (q.body == Node::Internal) */
+   /*             return; */
 
-            flt v[2] = { q.corner[0], q.corner[1] };
+   /*          flt v[2] = { q.corner[0], q.corner[1] }; */
 
-            glBegin(GL_LINE_LOOP);
-            glVertex2fv(v);
-            v[0] += q.size;
-            glVertex2fv(v);
-            v[1] += q.size;
-            glVertex2fv(v);
-            v[0] -= q.size;
-            glVertex2fv(v);
-            glEnd();
-         });
+   /*          glBegin(GL_LINE_LOOP); */
+   /*          glVertex2fv(v); */
+   /*          v[0] += q.size; */
+   /*          glVertex2fv(v); */
+   /*          v[1] += q.size; */
+   /*          glVertex2fv(v); */
+   /*          v[0] -= q.size; */
+   /*          glVertex2fv(v); */
+   /*          glEnd(); */
+   /*       }); */
 
-   glColor3f(1,1,1);
+   glColor3f(0,0,0);
    glBegin(GL_POINTS);
    std::for_each(u.bodies.cbegin(), u.bodies.cend(),
          [](Body const &b) {
@@ -430,7 +430,7 @@ void cb_display(void)
    glLoadIdentity();
    gluOrtho2D(-uni->size-1, uni->size, -uni->size-1, uni->size);
 
-   glClearColor(0, 0, 0, 1);
+   glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT);
 
    show_bhtree(*uni);
@@ -455,6 +455,15 @@ void cb_idle(void)
    /*    exit(0); */
 }
 
+void cb_keyboard(unsigned char k, int, int)
+{
+   switch (k) {
+   case 'q': case 27:
+      exit(0);
+      break;
+   }
+}
+
 void run_glut(int argc, char **argv, Universe &u)
 {
    uni = &u;
@@ -466,6 +475,7 @@ void run_glut(int argc, char **argv, Universe &u)
 
    glutDisplayFunc(cb_display);
    glutReshapeFunc(cb_reshape);
+   glutKeyboardFunc(cb_keyboard);
    glutIdleFunc(cb_idle);
 
    glutMainLoop();
