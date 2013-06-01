@@ -4,8 +4,8 @@
 #include <cassert>
 #include <ctime>
 
-#include <iterator>
 #include <parallel/algorithm>
+#include <iterator>
 #include <vector>
 #include <memory>
 
@@ -397,17 +397,16 @@ void update_forces(Universe &u)
 
 void update_forces_brute(Universe &u)
 {
+   // It would be simple to omp-parallel this loop, but really, what's the point?!
    std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) {
       b.acc = Vec();
       for(auto c = u.bodies.cbegin(); c != u.bodies.cend(); c++)
-      {
          if (&b != &*c)
             compute_acceleration(b, *c);
-      }
    });
 }
 
-void update_leapfrog(Universe &u)
+void update(Universe &u)
 {
    if (u.bruteforce)
    {
@@ -422,16 +421,12 @@ void update_leapfrog(Universe &u)
 
    const auto dt = u.dt;
 
+   // leapfrog integration
    std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
-         b.pos += b.vel * 0.5f * dt;
-         b.vel += b.acc * dt;
-         b.pos += b.vel * 0.5f * dt;
+         b.pos += b.vel * 0.5f * dt; // half dt psition update
+         b.vel += b.acc * dt;        //      dt velocity update
+         b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
    });
-}
-
-void update(Universe &u)
-{
-   update_leapfrog(u);
 }
 
 static int width, height;
