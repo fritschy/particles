@@ -177,6 +177,7 @@ struct Universe
    flt               dt;
 
    bool              show_tree;
+   bool              bruteforce;
 };
 
 flt frnd(flt max)
@@ -275,6 +276,7 @@ void populate_universe(Universe &u, size_t body_count)
    u.size = max_coord;
    u.dt = 0.05 * DT;
    u.show_tree = false;
+   u.bruteforce = false;
 
    u.bodies.resize(body_count);
 
@@ -342,6 +344,13 @@ void compute_acceleration(Body &i, Node const &j)
    i.acc += F / i.mass;
 }
 
+void compute_acceleration(Body &i, Body const &j)
+{
+   const Vec F = compute_force(i, j);
+
+   i.acc += F / i.mass;
+}
+
 void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 {
    if (u.nodes[q].body == b)
@@ -385,9 +394,30 @@ void update_forces(Universe &u)
    }
 }
 
+void update_forces_brute(Universe &u)
+{
+   std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) {
+      b.acc = Vec();
+      for(auto c = u.bodies.cbegin(); c != u.bodies.cend(); c++)
+      {
+         if (&b != &*c)
+            compute_acceleration(b, *c);
+      }
+   });
+}
+
 void update_leapfrog(Universe &u)
 {
-   update_forces(u);
+   if (u.bruteforce)
+   {
+      depopulate_bhtree(u);
+      update_forces_brute(u);
+   }
+   else
+   {
+      build_bhtree(u);
+      update_forces(u);
+   }
 
    const auto dt = u.dt;
 
@@ -400,7 +430,6 @@ void update_leapfrog(Universe &u)
 
 void update(Universe &u)
 {
-   build_bhtree(u);
    update_leapfrog(u);
 }
 
@@ -416,9 +445,6 @@ void show_bhtree(Universe &u)
             [u](Node const &q) {
                if (q.body == Node::Empty)
                   return;
-
-               /* if (q.body == Node::Internal) */
-               /*    return; */
 
                if (width / q.size > 200.f)
                   return;
@@ -476,7 +502,8 @@ void cb_idle(void)
    t0 = useconds() - t0;
 
    char buf[100];
-   snprintf(buf, sizeof(buf), "Barnes-Hut %u :: Physics @ %0.2ffps", unsigned(uni->bodies.size()), 1e6f / t0);
+   snprintf(buf, sizeof(buf), "%s %u :: Physics @ %0.2ffps", uni->bruteforce ? "brute-force" : "Barnes-Hut",
+         unsigned(uni->bodies.size()), 1e6f / t0);
    glutSetWindowTitle(buf);
 
    glutPostRedisplay();
@@ -514,6 +541,10 @@ void cb_keyboard(unsigned char k, int, int)
          populate_universe(*uni, uni->bodies.size());
          uni->show_tree = st;
       }
+      break;
+
+   case 'b':
+      uni->bruteforce = !uni->bruteforce;
       break;
    }
 }
