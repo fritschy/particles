@@ -14,6 +14,8 @@
 #include <vector>
 #include <memory>
 
+#include <pthread.h>
+
 #include <unistd.h>
 
 #include <GL/glut.h>
@@ -40,6 +42,7 @@ const auto DIST_FACT = 8.f;
 const auto G = 1e-4f; //6.6742e-11f;
 const auto BETA = 0.5f;
 const auto DT = 1.0f;
+const unsigned NTH = 4;
 
 const auto max_coord = 1000.f;
 const auto min_mass  = 1e2f;
@@ -183,6 +186,14 @@ struct Universe
 
    bool              show_tree;
    bool              bruteforce;
+
+   struct Work {
+      u32 id;
+      pthread_t th;
+      Universe *u;
+   };
+
+   Work threads[NTH];
 };
 
 flt frnd(flt max)
@@ -400,6 +411,37 @@ void update_forces(Universe &u)
    }
 }
 
+#ifndef _OPENMP
+void *update_thread(void *data)
+{
+   Universe::Work &w = *static_cast<Universe::Work*>(data);
+   Universe &u = *w.u;
+
+   for (u32 i = w.id; i < u.bodies.size(); i+=NTH)
+   {
+      u.bodies[i].acc = Vec();
+      update_body(u, 0, i, u.bodies[i].pos);
+   }
+
+   return 0;
+}
+
+void update_forces_threads(Universe &u)
+{
+   for (u32 t = 0; t < NTH; t++)
+   {
+      u.threads[t].id = t;
+      u.threads[t].u = &u;
+      pthread_create(&u.threads[t].th, NULL, update_thread, &u.threads[t]);
+   }
+
+   for (u32 t = 0; t < NTH; t++)
+   {
+      pthread_join(u.threads[t].th, NULL);
+   }
+}
+#endif
+
 void update_forces_brute(Universe &u)
 {
    // It would be simple to omp-parallel this loop, but really, what's the point?!
@@ -421,7 +463,11 @@ void update(Universe &u)
    else
    {
       build_bhtree(u);
+#ifndef _OPENMP
+      update_forces_threads(u);
+#else
       update_forces(u);
+#endif
    }
 
    const auto dt = u.dt;
