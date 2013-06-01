@@ -255,8 +255,8 @@ void populate_universe(Universe &u, size_t body_count)
             Vec pos = Vec{{1, 0}};
             // body_count / 1000.f normalizes the whole thing to my testing
             // number of 1000 bodies.
-            Vec vel = Vec{{0, std::sqrt(G * mass * (body_count / 1000.f) * x / 30)}};
-            //Vec vel = Vec{{0, std::sqrt(G * mass_sum / 100.f)}};
+            //Vec vel = Vec{{0, std::sqrt(G * mass * (body_count / 1000.f) * x / 30)}};
+            Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.5f / 100.f)}};
 
             Vec r = Vec{{std::cos(phi), std::sin(phi)}};
             Vec p = Vec{{pos[0]*r[0]-pos[1]*r[1],pos[0]*r[1]+pos[1]*r[0]}};
