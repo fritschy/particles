@@ -281,8 +281,8 @@ void populate_universe(Universe &u, size_t body_count)
    u.bodies.resize(body_count);
 
    std::vector<Body> a, b;
-   create_galaxy(u, Vec{{0,  200}}, Vec{{15,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 50, body_count / 4, a, 1.f);
-   create_galaxy(u, Vec{{0, -200}}, Vec{{-5,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 300, body_count * 3 / 4, b, -1.f);
+   create_galaxy(u, Vec{{0,  300}}, Vec{{16,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 50, body_count / 4, a, 1.f);
+   create_galaxy(u, Vec{{0, -300}}, Vec{{-4,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 300, body_count * 3 / 4, b, -1.f);
 
    u.bodies.swap(a);
    u.bodies.insert(u.bodies.end(), b.cbegin(), b.cend());
@@ -571,7 +571,7 @@ void run_glut(int argc, char **argv, Universe &u)
 int main(int argc, char **argv)
 {
    bh::Universe u;
-   bh::populate_universe(u, 10000);
+   bh::populate_universe(u, 5000);
 
    run_glut(argc, argv, u);
 
