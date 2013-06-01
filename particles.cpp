@@ -175,6 +175,8 @@ struct Universe
    std::vector<Node> nodes;
    flt               size;
    flt               dt;
+
+   bool              show_tree;
 };
 
 flt frnd(flt max)
@@ -240,6 +242,7 @@ void populate_universe(Universe &u, size_t body_count)
    u = Universe();
    u.size = max_coord;
    u.dt = 0.05 * DT;
+   u.show_tree = false;
 
    u.bodies.resize(body_count);
    std::generate(u.bodies.begin(), u.bodies.end(),
@@ -391,28 +394,30 @@ Universe *uni;
 
 void show_bhtree(Universe &u)
 {
-   /* glColor3f(0,0.3,0); */
-   /* std::for_each(u.nodes.cbegin(), u.nodes.cend(), */
-   /*       [u](Node const &q) { */
-   /*          /1* return; *1/ */
-   /*          if (q.body == Node::Empty) */
-   /*             return; */
+   if (u.show_tree)
+   {
+      glColor3f(0.7f,1.0f,0.7f);
+      std::for_each(u.nodes.cbegin(), u.nodes.cend(),
+            [u](Node const &q) {
+               if (q.body == Node::Empty)
+                  return;
 
-   /*          if (q.body == Node::Internal) */
-   /*             return; */
+               if (q.body == Node::Internal)
+                  return;
 
-   /*          flt v[2] = { q.corner[0], q.corner[1] }; */
+               flt v[2] = { q.corner[0], q.corner[1] };
 
-   /*          glBegin(GL_LINE_LOOP); */
-   /*          glVertex2fv(v); */
-   /*          v[0] += q.size; */
-   /*          glVertex2fv(v); */
-   /*          v[1] += q.size; */
-   /*          glVertex2fv(v); */
-   /*          v[0] -= q.size; */
-   /*          glVertex2fv(v); */
-   /*          glEnd(); */
-   /*       }); */
+               glBegin(GL_LINE_LOOP);
+               glVertex2fv(v);
+               v[0] += q.size;
+               glVertex2fv(v);
+               v[1] += q.size;
+               glVertex2fv(v);
+               v[0] -= q.size;
+               glVertex2fv(v);
+               glEnd();
+            });
+   }
 
    glColor3f(0,0,0);
    glBegin(GL_POINTS);
@@ -433,6 +438,8 @@ void cb_display(void)
    glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT);
 
+   glPointSize(2.f);
+
    show_bhtree(*uni);
 
    glutSwapBuffers();
@@ -446,7 +453,14 @@ void cb_reshape(int w, int h)
 
 void cb_idle(void)
 {
+   flt t0 = useconds();
    update(*uni);
+   t0 = useconds() - t0;
+
+   char buf[100];
+   snprintf(buf, sizeof(buf), "Barnes-Hut %u :: Physics @ %0.2ffps", unsigned(uni->bodies.size()), 1e6f / t0);
+   glutSetWindowTitle(buf);
+
    glutPostRedisplay();
 
    /* static int frames = 0; */
@@ -460,6 +474,20 @@ void cb_keyboard(unsigned char k, int, int)
    switch (k) {
    case 'q': case 27:
       exit(0);
+      break;
+
+   case '+':
+      uni->dt *= 1.1f;
+      printf("dt = %f\n", uni->dt);
+      break;
+
+   case '-':
+      uni->dt *= 1.f / 1.1f;
+      printf("dt = %f\n", uni->dt);
+      break;
+
+   case 't':
+      uni->show_tree = !uni->show_tree;
       break;
    }
 }
@@ -486,7 +514,7 @@ void run_glut(int argc, char **argv, Universe &u)
 int main(int argc, char **argv)
 {
    bh::Universe u;
-   bh::populate_universe(u, 500);
+   bh::populate_universe(u, 5000);
 
    run_glut(argc, argv, u);
 
