@@ -30,7 +30,7 @@ namespace bh
 const unsigned Dimensions = 2;
 
 // general constants to tweak computation of F
-const auto ETA = 0.f; // settings this one higher leads to more "clumping"
+const auto ETA = 10.f; // settings this one higher leads to more "clumping"
 const auto DIST_FACT = 8.f;
 const auto G = 1e-4f; //6.6742e-11f;
 const auto BETA = 0.5f;
@@ -279,8 +279,8 @@ void populate_universe(Universe &u, size_t body_count)
    u.bodies.resize(body_count);
 
    std::vector<Body> a, b;
-   create_galaxy(u, Vec{{-250,  250}}, Vec{{15,0}} * 4 * DIST_FACT * (body_count / 1e5f), 50, body_count / 4, a, 1.f);
-   create_galaxy(u, Vec{{ 250, -250}}, Vec{{-7.5,0}} * 4 * DIST_FACT * (body_count / 1e5f), 300, body_count * 3 / 4, b, -1.f);
+   create_galaxy(u, Vec{{0,  200}}, Vec{{15,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 50, body_count / 4, a, 1.f);
+   create_galaxy(u, Vec{{0, -200}}, Vec{{-5,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 300, body_count * 3 / 4, b, -1.f);
 
    u.bodies.swap(a);
    u.bodies.insert(u.bodies.end(), b.cbegin(), b.cend());
@@ -456,7 +456,7 @@ void cb_display(void)
    glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT);
 
-   glPointSize(1.f);
+   glPointSize(2.f);
 
    show_bhtree(*uni);
 
