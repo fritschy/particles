@@ -342,18 +342,23 @@ void compute_acceleration(Body &i, Node const &j)
    i.acc += F / i.mass;
 }
 
-void update_body(Universe &u, u32 q, u32 b)
+void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 {
-   if (u.nodes[q].body != Node::Internal && u.nodes[q].body != b)
+   if (u.nodes[q].body == b)
+   {
+      return;
+   }
+
+   if (u.nodes[q].body != Node::Internal)
    {
       compute_acceleration(u.bodies[b], u.nodes[q]);
       return;
    }
 
-   const auto s = u.nodes[q].size;
-   const auto dx = u.nodes[q].center[0] - u.bodies[b].pos[0];
-   const auto dy = u.nodes[q].center[1] - u.bodies[b].pos[1];
-   const auto d = std::sqrt(dx * dx + dy * dy);
+   const auto s = u.nodes[q].size * u.nodes[q].size;
+   const auto dx = u.nodes[q].center[0] - pos[0];
+   const auto dy = u.nodes[q].center[1] - pos[1];
+   const auto d = dx * dx + dy * dy;
 
    if (s / d < BETA)
    {
@@ -365,7 +370,7 @@ void update_body(Universe &u, u32 q, u32 b)
       {
          if (u.nodes[q].childs[i])
          {
-            update_body(u, u.nodes[q].childs[i], b);
+            update_body(u, u.nodes[q].childs[i], b, pos);
          }
       }
    }
@@ -373,11 +378,10 @@ void update_body(Universe &u, u32 q, u32 b)
 
 void update_forces(Universe &u)
 {
-   std::for_each(u.bodies.begin(), u.bodies.end(), [](Body &b) { b.acc = Vec(); });
-
    for (u32 i = 0; i < u.bodies.size(); i++)
    {
-      update_body(u, 0, i);
+      u.bodies[i].acc = Vec();
+      update_body(u, 0, i, u.bodies[i].pos);
    }
 }
 
