@@ -31,8 +31,8 @@ const unsigned Dimensions = 2;
 
 // general constants to tweak computation of F
 const auto ETA = 0.f; // settings this one higher leads to more "clumping"
-const auto DIST_FACT = 6.f;
-const auto G = 1e-4f; //6.6742e-11f;
+const auto DIST_FACT = 8.f;
+const auto G = 1e-5f; //6.6742e-11f;
 const auto BETA = 0.5f;
 const auto DT = 1.0f;
 
@@ -237,6 +237,38 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
    bhtree_insert_next(u, q, b);
 }
 
+void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_count, std::vector<Body> &res)
+{
+   res.resize(body_count);
+   std::generate(res.begin(), res.end(),
+         [u, body_count, center, size, velocity]() -> Body {
+            /* Vec pos; */
+            flt x = frnd(size * 0.7f) + size * 0.01f;
+            flt phi = flt(frnd(2 * M_PI));
+            flt mass = frnd(max_mass - min_mass)+min_mass;
+
+            Vec pos = Vec{{1, 0}};
+            // body_count / 1000.f normalizes the whole thing to my testing
+            // number of 1000 bodies.
+            Vec vel = Vec{{0, std::sqrt(G * mass * (body_count / 1000.f) * x / 70)}};
+
+            /* Vec vel = Vec{{0, std::sqrt(G * mass * (max_mass * body_count / 250000000.f))}}; */
+            //Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.00036125f)}};
+
+            Vec r = Vec{{std::cos(phi), std::sin(phi)}};
+            Vec p = Vec{{pos[0]*r[0]-pos[1]*r[1],pos[0]*r[1]+pos[1]*r[0]}};
+            Vec v = Vec{{vel[0]*r[0]-vel[1]*r[1],vel[0]*r[1]+vel[1]*r[0]}};
+
+            pos = p * x + center;
+            vel = v + velocity;
+
+            return Body{pos,
+                        vel,
+                        Vec(),
+                        mass};
+         });
+}
+
 void populate_universe(Universe &u, size_t body_count)
 {
    u = Universe();
@@ -245,31 +277,13 @@ void populate_universe(Universe &u, size_t body_count)
    u.show_tree = false;
 
    u.bodies.resize(body_count);
-   std::generate(u.bodies.begin(), u.bodies.end(),
-         [u, body_count]() -> Body {
-            /* Vec pos; */
-            flt x = frnd(700) + 5.f;
-            flt phi = flt(frnd(2 * M_PI));
-            flt mass = frnd(max_mass - min_mass)+min_mass;
 
-            Vec pos = Vec{{1, 0}};
-            // body_count / 1000.f normalizes the whole thing to my testing
-            // number of 1000 bodies.
-            //Vec vel = Vec{{0, std::sqrt(G * mass * (body_count / 1000.f) * x / 30)}};
-            Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.5f / 100.f)}};
+   std::vector<Body> a, b;
+   create_galaxy(u, Vec{{-250,  250}}, Vec{{15,0}} * (body_count / 1e5f), 300, body_count / 4, a);
+   create_galaxy(u, Vec{{ 250, -250}}, Vec{{-7.5,0}} * (body_count / 1e5f), 600, body_count * 3 / 4, b);
 
-            Vec r = Vec{{std::cos(phi), std::sin(phi)}};
-            Vec p = Vec{{pos[0]*r[0]-pos[1]*r[1],pos[0]*r[1]+pos[1]*r[0]}};
-            Vec v = Vec{{vel[0]*r[0]-vel[1]*r[1],vel[0]*r[1]+vel[1]*r[0]}};
-
-            pos = p * x;
-            vel = v;
-
-            return Body{pos,
-                        vel,
-                        Vec(),
-                        mass};
-         });
+   u.bodies.swap(a);
+   u.bodies.insert(u.bodies.end(), b.cbegin(), b.cend());
 
    /* std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { }); */
 }
@@ -407,7 +421,10 @@ void show_bhtree(Universe &u)
                if (q.body == Node::Empty)
                   return;
 
-               if (q.body == Node::Internal)
+               /* if (q.body == Node::Internal) */
+               /*    return; */
+
+               if (width / q.size > 200.f)
                   return;
 
                flt v[2] = { q.corner[0], q.corner[1] };
@@ -519,7 +536,7 @@ void run_glut(int argc, char **argv, Universe &u)
 int main(int argc, char **argv)
 {
    bh::Universe u;
-   bh::populate_universe(u, 5000);
+   bh::populate_universe(u, 20000);
 
    run_glut(argc, argv, u);
 
