@@ -408,7 +408,7 @@ void update_body_acceleration(Body &i, Body const &j)
    i.acc += F / i.mass;
 }
 
-void update_body(Universe &u, u32 q, u32 b, Vec const pos)
+void update_body(Universe &u, u32 q, u32 b)
 {
    if (u.nodes[q].body == b)
    {
@@ -422,7 +422,7 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
    }
 
    const auto s = u.nodes[q].size * u.nodes[q].size;
-   const auto dv = u.nodes[q].center - pos;
+   const auto dv = u.nodes[q].center - u.bodies[b].pos;
 
    if (s / dot(dv, dv) < u.param.beta)
    {
@@ -434,7 +434,7 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
       {
          if (u.nodes[q].childs[i])
          {
-            update_body(u, u.nodes[q].childs[i], b, pos);
+            update_body(u, u.nodes[q].childs[i], b);
          }
       }
    }
@@ -449,7 +449,7 @@ void update_forces(Universe &u)
    for (u32 i = 0; i < iend; i++)
    {
       u.bodies[i].acc = Vec();
-      update_body(u, 0, i, u.bodies[i].pos);
+      update_body(u, 0, i);
    }
 }
 
@@ -462,7 +462,7 @@ void *update_thread(void *data)
    for (u32 i = w.id, iend = u.bodies.size(); i < iend; i+=NTH)
    {
       u.bodies[i].acc = Vec();
-      update_body(u, 0, i, u.bodies[i].pos);
+      update_body(u, 0, i);
    }
 
    return 0;
