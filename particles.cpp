@@ -34,19 +34,11 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
-const unsigned Dimensions = 2;
-
-// general constants to tweak computation of F
-const auto ETA = 10.f; // settings this one higher leads to more "clumping"
-const auto DIST_FACT = 8.f;
-const auto G = 1e-4f; //6.6742e-11f;
-const auto BETA = 0.5f;
-const auto DT = 1.0f;
-const unsigned NTH = 4;
-
+const auto ETA = 0.0f;
+const auto DIST_FACT = 8.0f;
+const unsigned NTH = 8;
+const auto G = 1.0e-4f;
 const auto max_coord = 1000.f;
-const auto min_mass  = 1e2f;
-const auto max_mass  = 1e6f;
 
 typedef std::uint32_t u32;
 typedef float flt;
@@ -167,7 +159,24 @@ struct Universe
    std::vector<Body> bodies;
    std::vector<Node> nodes;
    flt               size;
-   flt               dt;
+
+   struct Params
+   {
+      flt dt;
+      flt beta;
+      flt min_mass;
+      flt max_mass;
+
+      Params()
+         : dt(0.025f)
+         , beta(0.5f)
+         , min_mass(1.0e2f)
+         , max_mass(1.0e6f)
+      {
+      }
+   };
+
+   Params param;
 
    bool              show_tree;
    bool              bruteforce;
@@ -179,6 +188,30 @@ struct Universe
    };
 
    Work threads[NTH];
+
+   Universe()
+      : bodies()
+      , nodes()
+      , size(1000.f)
+      , param()
+      , show_tree()
+      , bruteforce()
+      , threads()
+   {
+   }
+
+   Universe(flt s, flt dt, flt beta)
+      : bodies()
+      , nodes()
+      , size(s)
+      , param()
+      , show_tree()
+      , bruteforce()
+      , threads()
+   {
+      param.dt = dt;
+      param.beta = beta;
+   }
 };
 
 flt frnd(flt max)
@@ -247,7 +280,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
             /* Vec pos; */
             flt x = frnd(size * 0.7f) + size * 0.01f;
             flt phi = flt(frnd(2 * M_PI));
-            flt mass = frnd(max_mass - min_mass)+min_mass;
+            flt mass = frnd(u.param.max_mass - u.param.min_mass)+u.param.min_mass;
 
             Vec pos = Vec{{1, 0}};
             // body_count / 1000.f normalizes the whole thing to my testing
@@ -273,11 +306,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
 
 void populate_universe(Universe &u, size_t body_count)
 {
-   u = Universe();
-   u.size = max_coord;
-   u.dt = 0.025 * DT;
-   u.show_tree = false;
-   u.bruteforce = false;
+   u = Universe(max_coord, 0.025f * 0.05f, 0.5f);
 
    u.bodies.resize(body_count);
 
@@ -366,7 +395,7 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
    const auto s = u.nodes[q].size * u.nodes[q].size;
    const auto dv = u.nodes[q].center - pos;
 
-   if (s / dot(dv, dv) < BETA)
+   if (s / dot(dv, dv) < u.param.beta)
    {
       compute_acceleration(u.bodies[b], u.nodes[q]);
    }
@@ -451,7 +480,7 @@ void update(Universe &u)
 #endif
    }
 
-   const auto dt = u.dt;
+   const auto dt = u.param.dt;
 
    // leapfrog integration
    std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
@@ -550,13 +579,13 @@ void cb_keyboard(unsigned char k, int, int)
       break;
 
    case '+':
-      uni->dt *= 1.1f;
-      printf("dt = %f\n", uni->dt);
+      uni->param.dt *= 1.1f;
+      printf("dt = %f\n", uni->param.dt);
       break;
 
    case '-':
-      uni->dt *= 1.f / 1.1f;
-      printf("dt = %f\n", uni->dt);
+      uni->param.dt *= 1.f / 1.1f;
+      printf("dt = %f\n", uni->param.dt);
       break;
 
    case 't':
@@ -589,7 +618,7 @@ void cb_keyboard(unsigned char k, int, int)
                pos,
                Vec(),
                Vec(),
-               frnd(max_mass - min_mass) + min_mass
+               frnd(uni->param.max_mass - uni->param.min_mass) + uni->param.min_mass
             });
          }
       }
