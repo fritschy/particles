@@ -73,13 +73,6 @@ enum Quad
    SW
 };
 
-const char *QuadName[] = {
-   "NE",
-   "NW",
-   "SE",
-   "SW"
-};
-
 struct Vec
 {
    flt d[2];
@@ -105,7 +98,6 @@ struct Vec
          break;
       }
 
-      /* DBG(("{%f, %f}: got quadrant %s, selected offset {%f, %f}", d[0], d[1], QuadName[b], r[0], r[1])); */
       return r;
    }
 };
