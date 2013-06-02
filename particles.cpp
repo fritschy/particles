@@ -34,6 +34,8 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
+const auto ETA = 0.0f;
+const auto DIST_FACT = 8.0f;
 const unsigned NTH = 8;
 const auto G = 1.0e-4f;
 const auto max_coord = 1000.f;
@@ -282,7 +284,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
    std::generate(res.begin(), res.end(),
          [u, body_count, center, size, velocity, rot]() -> Body {
             /* Vec pos; */
-            flt x = frnd(size * 0.8f) + size * 0.001f;
+            flt x = frnd(size * 0.8f) + size * 0.01f;
 
             flt phi = flt(frnd(2 * M_PI));
 
@@ -291,7 +293,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
             Vec pos = Vec{{1, 0}};
             // body_count / 1000.f normalizes the whole thing to my testing
             // number of 1000 bodies.
-            Vec vel = Vec{{0, rot * std::sqrt(G * mass * std::sqrt(0.f + body_count) / 2.f * x)}};
+            Vec vel = Vec{{0, rot * std::sqrt(G * mass * (body_count / 1000.f) * x / 100)}};
 
             /* Vec vel = Vec{{0, std::sqrt(G * mass * (max_mass * body_count / 250000000.f))}}; */
             //Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.00036125f)}};
@@ -313,26 +315,29 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
 void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, size_t))
 {
    u = Universe(max_coord, 0.05f, 0.5f, scene);
+
    scene(u, body_count);
+
+   /* std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { }); */
 }
 
 void scene_two_galaxies(Universe &u, size_t body_count)
 {
    u.param.min_mass = 1e2f;
    u.param.max_mass = 1e2f;
-   u.param.dt = 0.06125f / std::sqrt(body_count / 100000.f);
+   u.param.dt = 1.f;
 
    std::vector<Body> a, b;
 
    create_galaxy(u, Vec{{0,  300}},
-         Vec{{4,0}} * 1,
+         Vec{{4,0}} * 2 * DIST_FACT * std::sqrt(body_count / 1e8f),
          50,
          body_count / 4,
          a,
          -1.f);
 
    create_galaxy(u, Vec{{0, -300}},
-         Vec{{-1,0}} * 1,
+         Vec{{-1,0}} * 2 * DIST_FACT * std::sqrt(body_count / 1e8f),
          300,
          body_count * 3 / 4,
          b,
@@ -346,7 +351,7 @@ void scene_galaxy(Universe &u, size_t body_count)
 {
    u.param.min_mass = 1e2f;
    u.param.max_mass = 1e2f;
-   u.param.dt = 0.125f / std::sqrt(body_count / 100000.f);
+   u.param.dt = 0.25f;
 
    create_galaxy(u, Vec(),
          Vec(),
@@ -385,7 +390,7 @@ Vec compute_force(Vec const &a, Vec const &b, flt const m0, flt const m1)
 {
    // computation of F
    const auto d = b - a;
-   const auto r = 1.f / std::sqrt(dot(d, d));
+   const auto r = 1.f / ((std::sqrt(dot(d, d)) + ETA) * DIST_FACT);
    const auto F = G * m0 * m1 * r;
 
    return d * F * r;
@@ -541,7 +546,7 @@ void show_bhtree(Universe &u)
                if (q.body == Node::Empty)
                   return;
 
-               if (q.size / width > 2.f)
+               if (width / q.size > 200.f)
                   return;
 
                flt v[2] = { q.corner[0], q.corner[1] };
