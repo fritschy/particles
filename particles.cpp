@@ -189,6 +189,8 @@ struct Universe
 
    Work threads[NTH];
 
+   void (*scene)(Universe&, size_t);
+
    Universe()
       : bodies()
       , nodes()
@@ -197,10 +199,11 @@ struct Universe
       , show_tree()
       , bruteforce()
       , threads()
+      , scene()
    {
    }
 
-   Universe(flt s, flt dt, flt beta)
+   Universe(flt s, flt dt, flt beta, void (*scn)(Universe&,size_t))
       : bodies()
       , nodes()
       , size(s)
@@ -208,6 +211,7 @@ struct Universe
       , show_tree()
       , bruteforce()
       , threads()
+      , scene(scn)
    {
       param.dt = dt;
       param.beta = beta;
@@ -304,20 +308,23 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
          });
 }
 
-void populate_universe(Universe &u, size_t body_count)
+void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, size_t))
 {
-   u = Universe(max_coord, 0.025f * 0.05f, 0.5f);
+   u = Universe(max_coord, 0.025f * 0.05f, 0.5f, scene);
 
-   u.bodies.resize(body_count);
+   scene(u, body_count);
 
+   /* std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { }); */
+}
+
+void scene_two_galaxies(Universe &u, size_t body_count)
+{
    std::vector<Body> a, b;
    create_galaxy(u, Vec{{0,  300}}, Vec{{16,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 50, body_count / 4, a, 1.f);
    create_galaxy(u, Vec{{0, -300}}, Vec{{-4,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 300, body_count * 3 / 4, b, -1.f);
 
    u.bodies.swap(a);
    u.bodies.insert(u.bodies.end(), b.cbegin(), b.cend());
-
-   /* std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { }); */
 }
 
 void build_bhtree(Universe &u)
@@ -595,7 +602,7 @@ void cb_keyboard(unsigned char k, int, int)
    case 'R':
       {
          bool st = uni->show_tree;
-         populate_universe(*uni, uni->bodies.size());
+         populate_universe(*uni, uni->bodies.size(), uni->scene);
          uni->show_tree = st;
       }
       break;
@@ -660,7 +667,7 @@ int main(int argc, char **argv)
    }
 
    bh::Universe u;
-   bh::populate_universe(u, body_count);
+   bh::populate_universe(u, body_count, bh::scene_two_galaxies);
    run_glut(argc, argv, u);
 
    return 0;
