@@ -473,7 +473,7 @@ void *update_thread(void *data)
    for (u32 i = w.id, iend = u.bodies.size(); i < iend; i+=NTH)
    {
       u.bodies[i].acc = Vec();
-      update_body(u, 0, i, u.bodies[i].pos);
+      update_body(u, 0, i);
    }
 
    return 0;
