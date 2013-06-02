@@ -171,7 +171,7 @@ struct Universe
          : dt(0.025f)
          , beta(0.5f)
          , min_mass(1.0e2f)
-         , max_mass(1.0e6f)
+         , max_mass(1.0e10f)
       {
       }
    };
@@ -252,6 +252,8 @@ void bhtree_insert_next(Universe &u, u32 q, u32 b)
    bhtree_insert(u, u.nodes[q].childs[quad], b);
 }
 
+// this one really is ugly as hell... using ints all over to get a central "node" allcator
+// in the universe... no fscken idea if it gives us an edge over a more naive aproach.
 void bhtree_insert(Universe &u, u32 q, u32 b)
 {
    if (u.nodes[q].body == Node::Empty) // insert
@@ -283,13 +285,15 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
          [u, body_count, center, size, velocity, rot]() -> Body {
             /* Vec pos; */
             flt x = frnd(size * 0.7f) + size * 0.01f;
+
             flt phi = flt(frnd(2 * M_PI));
+
             flt mass = frnd(u.param.max_mass - u.param.min_mass)+u.param.min_mass;
 
             Vec pos = Vec{{1, 0}};
             // body_count / 1000.f normalizes the whole thing to my testing
             // number of 1000 bodies.
-            Vec vel = Vec{{0, rot * std::sqrt(G * mass * (body_count / 1000.f) * x / 30)}};
+            Vec vel = Vec{{0, rot * std::sqrt(G * mass * (body_count / 1000.f) * x / 100)}};
 
             /* Vec vel = Vec{{0, std::sqrt(G * mass * (max_mass * body_count / 250000000.f))}}; */
             //Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.00036125f)}};
@@ -310,7 +314,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
 
 void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, size_t))
 {
-   u = Universe(max_coord, 0.025f * 0.05f, 0.5f, scene);
+   u = Universe(max_coord, 0.025f * 0.025f, 0.5f, scene);
 
    scene(u, body_count);
 
@@ -320,8 +324,20 @@ void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, 
 void scene_two_galaxies(Universe &u, size_t body_count)
 {
    std::vector<Body> a, b;
-   create_galaxy(u, Vec{{0,  300}}, Vec{{16,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 50, body_count / 4, a, 1.f);
-   create_galaxy(u, Vec{{0, -300}}, Vec{{-4,0}} * 4 * DIST_FACT * std::sqrt(body_count / 1e6f), 300, body_count * 3 / 4, b, -1.f);
+
+   create_galaxy(u, Vec{{0,  300}},
+         Vec{{16,0}} * 4 * DIST_FACT * std::sqrt(body_count / 5e2f),
+         50,
+         body_count / 4,
+         a,
+         -1.f);
+
+   create_galaxy(u, Vec{{0, -300}},
+         Vec{{-4,0}} * 4 * DIST_FACT * std::sqrt(body_count / 5e2f),
+         300,
+         body_count * 3 / 4,
+         b,
+         -1.f);
 
    u.bodies.swap(a);
    u.bodies.insert(u.bodies.end(), b.cbegin(), b.cend());
@@ -420,7 +436,9 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 
 void update_forces(Universe &u)
 {
+#ifdef _OPENMP
 #pragma omp parallel for schedule(static,500)
+#endif
    for (u32 i = 0; i < u.bodies.size(); i++)
    {
       u.bodies[i].acc = Vec();
@@ -614,7 +632,7 @@ void cb_keyboard(unsigned char k, int, int)
 
    case 'h':
       {
-         for (int i = 0; i < 100; i++)
+         for (int i = 0; i < 1000; i++)
          {
             Vec pos;
             do {
