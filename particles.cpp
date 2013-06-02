@@ -125,15 +125,6 @@ struct Body
 // subdivides space into even quadrants, irrespective of the contained bodies,
 // the tree can get really high. That means we cannot use a heap-like structure
 // of our tree (with a height of 16 we would need 4^16 == 2^32 nodes).
-//
-// On tree construction:
-//
-// 1. Iterate the array of bodies and construct the tree whily doing so ...
-// or
-// 2. Start with a nil-tree and insert one bodie at a time, subdividing/creating
-//    nodes where needed.
-//
-// 2 really sounds simple... and efficient too.
 
 struct Node
 {
