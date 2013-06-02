@@ -318,7 +318,7 @@ void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, 
 
 void scene_two_galaxies(Universe &u, size_t body_count)
 {
-   u.param.max_mass = 1e10f;
+   u.param.min_mass = 1e2f;
    u.param.max_mass = 1e2f;
    u.param.dt = 0.06125f / std::sqrt(body_count / 100000.f);
 
@@ -344,7 +344,7 @@ void scene_two_galaxies(Universe &u, size_t body_count)
 
 void scene_galaxy(Universe &u, size_t body_count)
 {
-   u.param.max_mass = 1e10f;
+   u.param.min_mass = 1e2f;
    u.param.max_mass = 1e2f;
    u.param.dt = 0.125f / std::sqrt(body_count / 100000.f);
 
