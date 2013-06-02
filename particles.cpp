@@ -34,8 +34,6 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
-const auto ETA = 0.0f;
-const auto DIST_FACT = 8.0f;
 const unsigned NTH = 8;
 const auto G = 1.0e-4f;
 const auto max_coord = 1000.f;
@@ -330,14 +328,14 @@ void scene_two_galaxies(Universe &u, size_t body_count)
    std::vector<Body> a, b;
 
    create_galaxy(u, Vec{{0,  300}},
-         Vec{{4,0}} * 2 * DIST_FACT * std::sqrt(body_count / 1e8f),
+         Vec{{4,0}} * 2 / std::sqrt(40000.f / body_count),
          50,
          body_count / 4,
          a,
          -1.f);
 
    create_galaxy(u, Vec{{0, -300}},
-         Vec{{-1,0}} * 2 * DIST_FACT * std::sqrt(body_count / 1e8f),
+         Vec{{-1,0}} * 2 / std::sqrt(40000.f / body_count),
          300,
          body_count * 3 / 4,
          b,
@@ -390,7 +388,7 @@ Vec compute_force(Vec const &a, Vec const &b, flt const m0, flt const m1)
 {
    // computation of F
    const auto d = b - a;
-   const auto r = 1.f / ((std::sqrt(dot(d, d)) + ETA) * DIST_FACT);
+   const auto r = 1.f / std::sqrt(dot(d, d));
    const auto F = G * m0 * m1 * r;
 
    return d * F * r;
