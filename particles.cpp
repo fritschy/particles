@@ -324,7 +324,7 @@ void scene_two_galaxies(Universe &u, size_t body_count)
 {
    u.param.min_mass = 1e2f;
    u.param.max_mass = 1e2f;
-   u.param.dt = 1.f;
+   u.param.dt = 0.06125f / std::sqrt(body_count / 100000.f);
 
    std::vector<Body> a, b;
 
@@ -347,7 +347,7 @@ void scene_galaxy(Universe &u, size_t body_count)
 {
    u.param.min_mass = 1e2f;
    u.param.max_mass = 1e2f;
-   u.param.dt = 0.25f;
+   u.param.dt = 0.125f / std::sqrt(body_count / 100000.f);
 
    create_galaxy(u, Vec(),
          Vec(),
