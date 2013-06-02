@@ -120,36 +120,37 @@ struct Body
 
 struct Node
 {
-   enum State
-   {
-      Empty    = u32(-2),
-      Internal = u32(-1)
-   };
-
    u32 childs[4];
+   u32 bodies[1];
    Vec corner;
    Vec center;      // of mass
    flt mass;        // accumulated mass of all children
-   u32 body;        // index of body or State
    flt size;        // edge length of the square
+   u32 n;
+
+   enum {
+      NumBodies = sizeof(Node::bodies) / sizeof(Node::bodies[0])
+   };
 
    Node()
       : childs()
+      , bodies()
       , corner()
       , center()
       , mass()
-      , body(Empty)
       , size()
+      , n()
    {
    }
 
    Node(Vec cornr, flt sz)
       : childs()
+      , bodies()
       , corner(cornr)
       , center()
       , mass()
-      , body(Empty)
       , size(sz)
+      , n()
    {
    }
 };
@@ -256,24 +257,31 @@ void bhtree_insert_next(Universe &u, u32 q, u32 b)
 // in the universe... no fscken idea if it gives us an edge over a more naive aproach.
 void bhtree_insert(Universe &u, u32 q, u32 b)
 {
-   if (u.nodes[q].body == Node::Empty) // insert
+   if (u.nodes[q].n < Node::NumBodies) // insert
    {
-      u.nodes[q].body = b;
-      u.nodes[q].mass = u.bodies[b].mass;
-      u.nodes[q].center = u.bodies[b].pos;
+      const auto m = u.nodes[q].mass + u.bodies[b].mass;
+
+      u.nodes[q].bodies[u.nodes[q].n++] = b;
+      u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies[b].pos * u.bodies[b].mass) / m;
+      u.nodes[q].mass = m;
+
       return;
    }
 
-   if (u.nodes[q].body != Node::Internal) // leaf, need to subdivide and insert
+   if (u.nodes[q].n == Node::NumBodies) // leaf, need to subdivide and insert
    {
-      bhtree_insert_next(u, q, u.nodes[q].body);
+      for (u32 i = 0; i < u.nodes[q].n; i++)
+         bhtree_insert_next(u, q, u.nodes[q].bodies[i]);
+
+      std::fill(u.nodes[q].bodies, u.nodes[q].bodies + Node::NumBodies, 0);
+      u.nodes[q].n = 0;
    }
 
    // update current node
    const auto m = u.nodes[q].mass + u.bodies[b].mass;
-   u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies.at(b).pos * u.bodies.at(b).mass) / m;
+   u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies[b].pos * u.bodies[b].mass) / m;
    u.nodes[q].mass   = m;
-   u.nodes[q].body   = Node::Internal;
+   u.nodes[q].n      = 0;
 
    bhtree_insert_next(u, q, b);
 }
@@ -406,14 +414,14 @@ Vec compute_force(Body const &i, Node const &j)
    return compute_force(i.pos, j.center, i.mass, j.mass);
 }
 
-void compute_acceleration(Body &i, Node const &j)
+void update_body_acceleration(Body &i, Node const &j)
 {
    const Vec F = compute_force(i, j);
 
    i.acc += F / i.mass;
 }
 
-void compute_acceleration(Body &i, Body const &j)
+void update_body_acceleration(Body &i, Body const &j)
 {
    const Vec F = compute_force(i, j);
 
@@ -422,14 +430,11 @@ void compute_acceleration(Body &i, Body const &j)
 
 void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 {
-   if (u.nodes[q].body == b)
+   if (u.nodes[q].n != 0)
    {
-      return;
-   }
-
-   if (u.nodes[q].body != Node::Internal)
-   {
-      compute_acceleration(u.bodies[b], u.nodes[q]);
+      for (u32 i = 0; i < u.nodes[q].n; i++)
+         if (u.nodes[q].bodies[i] != b)
+            update_body_acceleration(u.bodies[b], u.bodies[u.nodes[q].bodies[i]]);
       return;
    }
 
@@ -438,16 +443,15 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 
    if (s / dot(dv, dv) < u.param.beta)
    {
-      compute_acceleration(u.bodies[b], u.nodes[q]);
+      update_body_acceleration(u.bodies[b], u.nodes[q]);
+      return;
    }
-   else
+
+   for (u32 i = 0; i < 4; i++)
    {
-      for (u32 i = 0; i < 4; i++)
+      if (u.nodes[q].childs[i])
       {
-         if (u.nodes[q].childs[i])
-         {
-            update_body(u, u.nodes[q].childs[i], b, pos);
-         }
+         update_body(u, u.nodes[q].childs[i], b, pos);
       }
    }
 }
@@ -502,7 +506,7 @@ void update_forces_brute(Universe &u)
       b.acc = Vec();
       for(auto c = u.bodies.cbegin(); c != u.bodies.cend(); c++)
          if (&b != &*c)
-            compute_acceleration(b, *c);
+            update_body_acceleration(b, *c);
    });
 }
 
@@ -543,10 +547,7 @@ void show_bhtree(Universe &u)
       glColor3f(0.7f,1.0f,0.7f);
       std::for_each(u.nodes.cbegin(), u.nodes.cend(),
             [u](Node const &q) {
-               if (q.body == Node::Empty)
-                  return;
-
-               if (width / q.size > 200.f)
+               if (q.size / width > 2.f)
                   return;
 
                flt v[2] = { q.corner[0], q.corner[1] };
