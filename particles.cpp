@@ -168,7 +168,7 @@ struct Universe
       flt max_mass;
 
       Params()
-         : dt(0.025f)
+         : dt(0.25f)
          , beta(0.5f)
          , min_mass(1.0e2f)
          , max_mass(1.0e10f)
@@ -284,7 +284,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
    std::generate(res.begin(), res.end(),
          [u, body_count, center, size, velocity, rot]() -> Body {
             /* Vec pos; */
-            flt x = frnd(size * 0.7f) + size * 0.01f;
+            flt x = frnd(size * 0.8f) + size * 0.01f;
 
             flt phi = flt(frnd(2 * M_PI));
 
@@ -314,7 +314,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
 
 void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, size_t))
 {
-   u = Universe(max_coord, 0.025f * 0.025f, 0.5f, scene);
+   u = Universe(max_coord, 0.05f, 0.5f, scene);
 
    scene(u, body_count);
 
@@ -323,17 +323,21 @@ void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, 
 
 void scene_two_galaxies(Universe &u, size_t body_count)
 {
+   u.param.max_mass = 1e9f;
+   u.param.max_mass = 1e2f;
+   u.param.dt = 1.f;
+
    std::vector<Body> a, b;
 
    create_galaxy(u, Vec{{0,  300}},
-         Vec{{16,0}} * 4 * DIST_FACT * std::sqrt(body_count / 5e2f),
+         Vec{{4,0}} * 2 * DIST_FACT * std::sqrt(body_count / 1e8f),
          50,
          body_count / 4,
          a,
          -1.f);
 
    create_galaxy(u, Vec{{0, -300}},
-         Vec{{-4,0}} * 4 * DIST_FACT * std::sqrt(body_count / 5e2f),
+         Vec{{-1,0}} * 2 * DIST_FACT * std::sqrt(body_count / 1e8f),
          300,
          body_count * 3 / 4,
          b,
@@ -341,6 +345,20 @@ void scene_two_galaxies(Universe &u, size_t body_count)
 
    u.bodies.swap(a);
    u.bodies.insert(u.bodies.end(), b.cbegin(), b.cend());
+}
+
+void scene_galaxy(Universe &u, size_t body_count)
+{
+   u.param.max_mass = 1e10f;
+   u.param.max_mass = 1e2f;
+   u.param.dt = 0.25f;
+
+   create_galaxy(u, Vec(),
+         Vec(),
+         u.size,
+         body_count,
+         u.bodies,
+         -1.f);
 }
 
 void build_bhtree(Universe &u)
@@ -584,8 +602,11 @@ void cb_idle(void)
    t0 = useconds() - t0;
 
    char buf[100];
-   snprintf(buf, sizeof(buf), "%s %u :: Physics @ %0.2ffps", uni->bruteforce ? "brute-force" : "Barnes-Hut",
-         unsigned(uni->bodies.size()), 1e6f / t0);
+   snprintf(buf, sizeof(buf), "%s %u :: dt=%f Physics @ %0.2ffps",
+         uni->bruteforce ? "brute-force" : "Barnes-Hut",
+         unsigned(uni->bodies.size()),
+         uni->param.dt,
+         1e6f / t0);
    glutSetWindowTitle(buf);
 
    glutPostRedisplay();
@@ -685,7 +706,8 @@ int main(int argc, char **argv)
    }
 
    bh::Universe u;
-   bh::populate_universe(u, body_count, bh::scene_two_galaxies);
+   bh::populate_universe(u, body_count, bh::scene_galaxy);
+   /* bh::populate_universe(u, body_count, bh::scene_two_galaxies); */
    run_glut(argc, argv, u);
 
    return 0;
