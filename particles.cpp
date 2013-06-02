@@ -293,36 +293,37 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
 
 void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_count, std::vector<Body> &res, flt rot)
 {
-   res.resize(body_count);
-   std::generate(res.begin(), res.end(),
-         [u, body_count, center, size, velocity, rot]() -> Body {
-            /* Vec pos; */
-            flt x = frnd(size * 0.8f) + size * 0.001f;
+   res.reserve(res.size() + body_count);
 
-            flt phi = flt(frnd(2 * M_PI));
+   for (size_t i = 0; i < body_count; i++)
+   {
+      /* Vec pos; */
+      flt x = frnd(size * 0.8f) + size * 0.001f;
 
-            flt mass = frnd(u.param.max_mass - u.param.min_mass)+u.param.min_mass;
+      flt phi = flt(frnd(2 * M_PI));
 
-            Vec pos = Vec{{1, 0}};
-            // body_count / 1000.f normalizes the whole thing to my testing
-            // number of 1000 bodies.
-            Vec vel = Vec{{0, rot * std::sqrt(G * mass * (body_count / 1000.f) * x / 100)}};
+      flt mass = frnd(u.param.max_mass - u.param.min_mass)+u.param.min_mass;
 
-            /* Vec vel = Vec{{0, std::sqrt(G * mass * (max_mass * body_count / 250000000.f))}}; */
-            //Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.00036125f)}};
+      Vec pos = Vec{{1, 0}};
+      // body_count / 1000.f normalizes the whole thing to my testing
+      // number of 1000 bodies.
+      Vec vel = Vec{{0, rot * std::sqrt(G * mass * (body_count / 1000.f) * x)}};
 
-            Vec r = Vec{{std::cos(phi), std::sin(phi)}};
-            Vec p = Vec{{pos[0]*r[0]-pos[1]*r[1],pos[0]*r[1]+pos[1]*r[0]}};
-            Vec v = Vec{{vel[0]*r[0]-vel[1]*r[1],vel[0]*r[1]+vel[1]*r[0]}};
+      /* Vec vel = Vec{{0, std::sqrt(G * mass * (max_mass * body_count / 250000000.f))}}; */
+      //Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.00036125f)}};
 
-            pos = p * x + center;
-            vel = v + velocity;
+      Vec r = Vec{{std::cos(phi), std::sin(phi)}};
+      Vec p = Vec{{pos[0]*r[0]-pos[1]*r[1],pos[0]*r[1]+pos[1]*r[0]}};
+      Vec v = Vec{{vel[0]*r[0]-vel[1]*r[1],vel[0]*r[1]+vel[1]*r[0]}};
 
-            return Body{pos,
-                        vel,
-                        Vec(),
-                        mass};
-         });
+      pos = p * x + center;
+      vel = v + velocity;
+
+      res.push_back(Body{pos,
+                         vel,
+                         Vec(),
+                         mass});
+   }
 }
 
 void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, size_t))
@@ -346,18 +347,15 @@ void scene_two_galaxies(Universe &u, size_t body_count)
          Vec{{4,0}} * 2 / std::sqrt(40000.f / body_count),
          50,
          body_count / 4,
-         a,
+         u.bodies,
          -1.f);
 
    create_galaxy(u, Vec{{0, -300}},
          Vec{{-1,0}} * 2 / std::sqrt(40000.f / body_count),
          300,
          body_count * 3 / 4,
-         b,
+         u.bodies,
          -1.f);
-
-   u.bodies.swap(a);
-   u.bodies.insert(u.bodies.end(), b.cbegin(), b.cend());
 }
 
 void scene_galaxy(Universe &u, size_t body_count)
