@@ -94,16 +94,16 @@ struct Vec
    }
 };
 
-Vec operator+(Vec a, Vec b) { return Vec{{a[0]+b[0], a[1]+b[1]}}; }
-Vec operator-(Vec a, Vec b) { return Vec{{a[0]-b[0], a[1]-b[1]}}; }
+Vec operator+(Vec const &a, Vec const &b) { return Vec{{a[0]+b[0], a[1]+b[1]}}; }
+Vec operator-(Vec const &a, Vec const &b) { return Vec{{a[0]-b[0], a[1]-b[1]}}; }
 
-Vec operator*(Vec a, flt b) { return Vec{{a[0]*b, a[1]*b}}; }
-Vec operator/(Vec a, flt b) { return Vec{{a[0]/b, a[1]/b}}; }
+Vec operator*(Vec const &a, flt b) { return Vec{{a[0]*b, a[1]*b}}; }
+Vec operator/(Vec const &a, flt b) { return Vec{{a[0]/b, a[1]/b}}; }
 
-Vec operator+=(Vec &a, Vec b) { a[0]+=b[0]; a[1]+=b[1]; return a; }
-Vec operator-=(Vec &a, Vec b) { a[0]-=b[0]; a[1]-=b[1]; return a; }
+Vec operator+=(Vec &a, Vec const &b) { a[0]+=b[0]; a[1]+=b[1]; return a; }
+Vec operator-=(Vec &a, Vec const &b) { a[0]-=b[0]; a[1]-=b[1]; return a; }
 
-flt dot(Vec a, Vec b) { return a[0]*b[0] + a[1]*b[1]; }
+flt dot(Vec const &a, Vec const &b) { return a[0]*b[0] + a[1]*b[1]; }
 
 struct Body
 {
@@ -345,7 +345,7 @@ void depopulate_bhtree(Universe &u)
    u.nodes.clear();
 }
 
-Vec compute_force(Vec const a, Vec const b, flt const m0, flt const m1)
+Vec compute_force(Vec const &a, Vec const &b, flt const m0, flt const m1)
 {
    // computation of F
    const auto d = b - a;
