@@ -111,6 +111,8 @@ Vec operator/(Vec a, flt b) { return Vec{{a[0]/b, a[1]/b}}; }
 Vec operator+=(Vec &a, Vec b) { a[0]+=b[0]; a[1]+=b[1]; return a; }
 Vec operator-=(Vec &a, Vec b) { a[0]-=b[0]; a[1]-=b[1]; return a; }
 
+flt dot(Vec a, Vec b) { return a[0]*b[0] + a[1]*b[1]; }
+
 struct Body
 {
    Vec pos;
@@ -323,26 +325,24 @@ void depopulate_bhtree(Universe &u)
    u.nodes.clear();
 }
 
-Vec compute_force(flt const x0, flt const y0, flt const m0,
-                  flt const x1, flt const y1, flt const m1)
+Vec compute_force(Vec const a, Vec const b, flt const m0, flt const m1)
 {
    // computation of F
-   const auto dx = x1 - x0;
-   const auto dy = y1 - y0;
-   const auto r = 1.f / ((std::sqrt(dx * dx + dy * dy) + ETA) * DIST_FACT);
+   const auto d = b - a;
+   const auto r = 1.f / ((std::sqrt(dot(d, d)) + ETA) * DIST_FACT);
    const auto F = G * m0 * m1 * r;
 
-   return Vec{{ F * dx * r, F * dy * r }};
+   return d * F * r;
 }
 
 Vec compute_force(Body const &i, Body const &j)
 {
-   return compute_force(i.pos[0], i.pos[1], i.mass, j.pos[0], j.pos[1], j.mass);
+   return compute_force(i.pos, j.pos, i.mass, j.mass);
 }
 
 Vec compute_force(Body const &i, Node const &j)
 {
-   return compute_force(i.pos[0], i.pos[1], i.mass, j.center[0], j.center[1], j.mass);
+   return compute_force(i.pos, j.center, i.mass, j.mass);
 }
 
 void compute_acceleration(Body &i, Node const &j)
@@ -373,11 +373,9 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
    }
 
    const auto s = u.nodes[q].size * u.nodes[q].size;
-   const auto dx = u.nodes[q].center[0] - pos[0];
-   const auto dy = u.nodes[q].center[1] - pos[1];
-   const auto d = dx * dx + dy * dy;
+   const auto dv = u.nodes[q].center - pos;
 
-   if (s / d < BETA)
+   if (s / dot(dv, dv) < BETA)
    {
       compute_acceleration(u.bodies[b], u.nodes[q]);
    }
