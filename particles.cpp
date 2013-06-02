@@ -396,26 +396,16 @@ Vec compute_force(Vec const &a, Vec const &b, flt const m0, flt const m1)
    return d * F * r;
 }
 
-Vec compute_force(Body const &i, Body const &j)
+void update_body_acceleration(Body &i, Node const &j)
 {
-   return compute_force(i.pos, j.pos, i.mass, j.mass);
-}
-
-Vec compute_force(Body const &i, Node const &j)
-{
-   return compute_force(i.pos, j.center, i.mass, j.mass);
-}
-
-void compute_acceleration(Body &i, Node const &j)
-{
-   const Vec F = compute_force(i, j);
+   const Vec F = compute_force(i.pos, j.center, i.mass, j.mass);
 
    i.acc += F / i.mass;
 }
 
-void compute_acceleration(Body &i, Body const &j)
+void update_body_acceleration(Body &i, Body const &j)
 {
-   const Vec F = compute_force(i, j);
+   const Vec F = compute_force(i.pos, j.pos, i.mass, j.mass);
 
    i.acc += F / i.mass;
 }
@@ -429,7 +419,7 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 
    if (u.nodes[q].body != Node::Internal)
    {
-      compute_acceleration(u.bodies[b], u.nodes[q]);
+      update_body_acceleration(u.bodies[b], u.bodies[u.nodes[q].body]);
       return;
    }
 
@@ -438,7 +428,7 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 
    if (s / dot(dv, dv) < u.param.beta)
    {
-      compute_acceleration(u.bodies[b], u.nodes[q]);
+      update_body_acceleration(u.bodies[b], u.nodes[q]);
    }
    else
    {
@@ -507,7 +497,7 @@ void update_forces_brute(Universe &u)
       u.bodies[i].acc = Vec();
       for(u32 j = 0; j < iend; j++)
          if (i != j)
-            compute_acceleration(u.bodies[i], u.bodies[j]);
+            update_body_acceleration(u.bodies[i], u.bodies[j]);
    }
 }
 
