@@ -367,7 +367,7 @@ void build_bhtree(Universe &u)
    u.nodes.reserve(u.bodies.size() * 5 / 3);
    u.nodes.push_back(Node(Vec{{-u.size, -u.size}}, u.size*2));
 
-   for (unsigned i = 0; i < u.bodies.size(); i++)
+   for (unsigned i = 0, iend = u.bodies.size(); i < iend; i++)
    {
       if (u.bodies[i].pos[0] < -u.size ||
           u.bodies[i].pos[1] < -u.size ||
@@ -454,10 +454,11 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
 
 void update_forces(Universe &u)
 {
+   u32 const iend = u.bodies.size();
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static,500)
 #endif
-   for (u32 i = 0; i < u.bodies.size(); i++)
+   for (u32 i = 0; i < iend; i++)
    {
       u.bodies[i].acc = Vec();
       update_body(u, 0, i, u.bodies[i].pos);
@@ -470,7 +471,7 @@ void *update_thread(void *data)
    Universe::Work &w = *static_cast<Universe::Work*>(data);
    Universe &u = *w.u;
 
-   for (u32 i = w.id; i < u.bodies.size(); i+=NTH)
+   for (u32 i = w.id, iend = u.bodies.size(); i < iend; i+=NTH)
    {
       u.bodies[i].acc = Vec();
       update_body(u, 0, i, u.bodies[i].pos);
@@ -497,13 +498,17 @@ void update_forces_threads(Universe &u)
 
 void update_forces_brute(Universe &u)
 {
-   // It would be simple to omp-parallel this loop, but really, what's the point?!
-   std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) {
-      b.acc = Vec();
-      for(auto c = u.bodies.cbegin(); c != u.bodies.cend(); c++)
-         if (&b != &*c)
-            compute_acceleration(b, *c);
-   });
+   u32 const iend = u.bodies.size();
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,500)
+#endif
+   for (u32 i = 0; i < iend; i++)
+   {
+      u.bodies[i].acc = Vec();
+      for(u32 j = 0; j < iend; j++)
+         if (i != j)
+            compute_acceleration(u.bodies[i], u.bodies[j]);
+   }
 }
 
 void update(Universe &u)
