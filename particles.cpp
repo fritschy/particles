@@ -459,7 +459,7 @@ void update_forces(Universe &u)
    }
 }
 
-#ifndef _OPENMP
+#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
 void *update_thread(void *data)
 {
    Universe::Work &w = *static_cast<Universe::Work*>(data);
@@ -511,7 +511,7 @@ void update(Universe &u)
    else
    {
       build_bhtree(u);
-#ifndef _OPENMP
+#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
       update_forces_threads(u);
 #else
       update_forces(u);

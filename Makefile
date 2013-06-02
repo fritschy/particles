@@ -27,6 +27,12 @@ CXXFLAGS += -fopenmp
 endif
 endif
 
+ifeq ($(DEBUG),1)
+CXXFLAGS = -O0 -g3 -std=c++11 $(WARN)
+CPPFLAGS = -DNO_THREADED_UPDATE
+LDFLAGS = $(LIBS) -g3
+endif
+
 all: particles
 
 particles: particles.o
