@@ -120,13 +120,19 @@ struct Body
 
 struct Node
 {
+   enum {
+      Leaf = u32(-1),
+      Internal = u32(-2)
+   };
+
    u32 childs[4];
-   u32 bodies[1];
+   u32 bodies[4];
    Vec corner;
    Vec center;      // of mass
    flt mass;        // accumulated mass of all children
    flt size;        // edge length of the square
    u32 n;
+   u32 state;
 
    enum {
       NumBodies = sizeof(Node::bodies) / sizeof(Node::bodies[0])
@@ -140,6 +146,7 @@ struct Node
       , mass()
       , size()
       , n()
+      , state(Leaf)
    {
    }
 
@@ -151,6 +158,7 @@ struct Node
       , mass()
       , size(sz)
       , n()
+      , state(Leaf)
    {
    }
 };
@@ -257,24 +265,22 @@ void bhtree_insert_next(Universe &u, u32 q, u32 b)
 // in the universe... no fscken idea if it gives us an edge over a more naive aproach.
 void bhtree_insert(Universe &u, u32 q, u32 b)
 {
-   if (u.nodes[q].n < Node::NumBodies) // insert
+   if (u.nodes[q].state != Node::Internal && u.nodes[q].n < Node::NumBodies) // insert
    {
       const auto m = u.nodes[q].mass + u.bodies[b].mass;
 
       u.nodes[q].bodies[u.nodes[q].n++] = b;
       u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies[b].pos * u.bodies[b].mass) / m;
       u.nodes[q].mass = m;
+      u.nodes[q].state = Node::Leaf;
 
       return;
    }
-
-   if (u.nodes[q].n == Node::NumBodies) // leaf, need to subdivide and insert
+   
+   if (u.nodes[q].state != Node::Internal) // leaf, need to subdivide and insert
    {
       for (u32 i = 0; i < u.nodes[q].n; i++)
          bhtree_insert_next(u, q, u.nodes[q].bodies[i]);
-
-      std::fill(u.nodes[q].bodies, u.nodes[q].bodies + Node::NumBodies, 0);
-      u.nodes[q].n = 0;
    }
 
    // update current node
@@ -282,6 +288,7 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
    u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies[b].pos * u.bodies[b].mass) / m;
    u.nodes[q].mass   = m;
    u.nodes[q].n      = 0;
+   u.nodes[q].state  = Node::Internal;
 
    bhtree_insert_next(u, q, b);
 }
@@ -428,7 +435,7 @@ void update_body_acceleration(Body &i, Body const &j)
    i.acc += F / i.mass;
 }
 
-void update_body(Universe &u, u32 q, u32 b, Vec const pos)
+void update_body(Universe &u, u32 q, u32 b)
 {
    if (u.nodes[q].n != 0)
    {
@@ -439,7 +446,7 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
    }
 
    const auto s = u.nodes[q].size * u.nodes[q].size;
-   const auto dv = u.nodes[q].center - pos;
+   const auto dv = u.nodes[q].center - u.bodies[b].pos;
 
    if (s / dot(dv, dv) < u.param.beta)
    {
@@ -451,7 +458,7 @@ void update_body(Universe &u, u32 q, u32 b, Vec const pos)
    {
       if (u.nodes[q].childs[i])
       {
-         update_body(u, u.nodes[q].childs[i], b, pos);
+         update_body(u, u.nodes[q].childs[i], b);
       }
    }
 }
@@ -464,7 +471,7 @@ void update_forces(Universe &u)
    for (u32 i = 0; i < u.bodies.size(); i++)
    {
       u.bodies[i].acc = Vec();
-      update_body(u, 0, i, u.bodies[i].pos);
+      update_body(u, 0, i);
    }
 }
 
