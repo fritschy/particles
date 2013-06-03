@@ -1,6 +1,7 @@
 OPT = -O3
 WARN = -Wall -Wextra
-CXXFLAGS = -std=c++0x $(OPT) $(WARN)
+STD = -std=c++11
+CXXFLAGS = $(STD) $(OPT) $(WARN)
 CXX ?= g++
 LD = $(CXX)
 LIBS = -pthread -lrt -lGL -lGLU -lglut
@@ -9,6 +10,7 @@ CPPFLAGS =
 
 ifneq ($(CROSS),)
 CXX := $(CROSS)$(CXX)
+STD = -std=c++0x
 endif
 
 ifeq ($(NOGUI),1)
