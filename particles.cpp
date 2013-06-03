@@ -127,13 +127,15 @@ struct Node
    };
 
    u32 childs[4];
-   u32 bodies[4];
+   union {
+      u32 bodies[4];
+      u32 state;
+   };
    Vec corner;
    Vec center;      // of mass
    flt mass;        // accumulated mass of all children
    flt size;        // edge length of the square
    u32 n;
-   u32 state;
 
    enum {
       NumBodies = sizeof(Node::bodies) / sizeof(Node::bodies[0])
@@ -147,8 +149,8 @@ struct Node
       , mass()
       , size()
       , n()
-      , state(Leaf)
    {
+      state = Leaf;
    }
 
    Node(Vec cornr, flt sz)
@@ -159,8 +161,8 @@ struct Node
       , mass()
       , size(sz)
       , n()
-      , state(Leaf)
    {
+      state = Leaf;
    }
 };
 
@@ -273,7 +275,6 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
       u.nodes[q].bodies[u.nodes[q].n++] = b;
       u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies[b].pos * u.bodies[b].mass) / m;
       u.nodes[q].mass = m;
-      u.nodes[q].state = Node::Leaf;
 
       return;
    }
