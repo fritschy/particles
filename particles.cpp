@@ -73,10 +73,10 @@ struct Vec
 {
    flt d[2];
 
-   flt operator[](int i) const { return d[i]; }
-   flt &operator[](int i) { return d[i]; }
+   inline flt operator[](int i) const { return d[i]; }
+   inline flt &operator[](int i) { return d[i]; }
 
-   Vec operator()(u32 b) const {
+   inline Vec operator()(u32 b) const {
       Vec r = Vec();
 
       switch (b) {
@@ -98,16 +98,16 @@ struct Vec
    }
 };
 
-Vec operator+(Vec const &a, Vec const &b) { return Vec{{a[0]+b[0], a[1]+b[1]}}; }
-Vec operator-(Vec const &a, Vec const &b) { return Vec{{a[0]-b[0], a[1]-b[1]}}; }
+inline Vec operator+(Vec const &a, Vec const &b) { return Vec{{a[0]+b[0], a[1]+b[1]}}; }
+inline Vec operator-(Vec const &a, Vec const &b) { return Vec{{a[0]-b[0], a[1]-b[1]}}; }
 
-Vec operator*(Vec const &a, flt b) { return Vec{{a[0]*b, a[1]*b}}; }
-Vec operator/(Vec const &a, flt b) { return Vec{{a[0]/b, a[1]/b}}; }
+inline Vec operator*(Vec const &a, flt b) { return Vec{{a[0]*b, a[1]*b}}; }
+inline Vec operator/(Vec const &a, flt b) { return Vec{{a[0]/b, a[1]/b}}; }
 
-Vec operator+=(Vec &a, Vec const &b) { a[0]+=b[0]; a[1]+=b[1]; return a; }
-Vec operator-=(Vec &a, Vec const &b) { a[0]-=b[0]; a[1]-=b[1]; return a; }
+inline Vec operator+=(Vec &a, Vec const &b) { a[0]+=b[0]; a[1]+=b[1]; return a; }
+inline Vec operator-=(Vec &a, Vec const &b) { a[0]-=b[0]; a[1]-=b[1]; return a; }
 
-flt dot(Vec const &a, Vec const &b) { return a[0]*b[0] + a[1]*b[1]; }
+inline flt dot(Vec const &a, Vec const &b) { return a[0]*b[0] + a[1]*b[1]; }
 
 struct Body
 {
@@ -143,7 +143,7 @@ struct Node
       NumBodies = sizeof(Node::bodies) / sizeof(Node::bodies[0])
    };
 
-   Node()
+   inline Node()
       : childs()
       , bodies()
       , corner()
@@ -154,7 +154,7 @@ struct Node
    {
    }
 
-   Node(Vec cornr, flt sz)
+   inline Node(Vec cornr, flt sz)
       : childs()
       , bodies()
       , corner(cornr)
@@ -179,7 +179,7 @@ struct Universe
       flt min_mass;
       flt max_mass;
 
-      Params()
+      inline Params()
          : dt(0.25f)
          , beta(0.5f)
          , min_mass(1.0e2f)
@@ -205,7 +205,7 @@ struct Universe
    Work threads[NTH];
 #endif
 
-   Universe()
+   inline Universe()
       : bodies()
       , nodes()
       , size(1000.f)
@@ -220,7 +220,7 @@ struct Universe
    {
    }
 
-   Universe(flt s, flt dt, flt beta)
+   inline Universe(flt s, flt dt, flt beta)
       : bodies()
       , nodes()
       , size(s)
@@ -238,13 +238,13 @@ struct Universe
    }
 };
 
-flt frnd(flt max)
+inline flt frnd(flt max)
 {
    float r = float(drand48());
    return r * max;
 }
 
-Quad quadrant_for_body(Universe const &u, Node const &q, u32 b, Vec &coff)
+inline Quad quadrant_for_body(Universe const &u, Node const &q, u32 b, Vec &coff)
 {
    const auto hsize = q.size * 0.5f;
    coff = Vec{{hsize, hsize}};
@@ -258,7 +258,7 @@ Quad quadrant_for_body(Universe const &u, Node const &q, u32 b, Vec &coff)
 
 void bhtree_insert(Universe &u, u32 q, u32 b, int depth);
 
-void bhtree_insert_next(Universe &u, u32 q, u32 b, int depth)
+inline void bhtree_insert_next(Universe &u, u32 q, u32 b, int depth)
 {
    Vec coff;
    Quad quad = quadrant_for_body(u, u.nodes[q], b, coff);
@@ -371,7 +371,7 @@ void depopulate_bhtree(Universe &u)
    u.nodes.clear();
 }
 
-void accelerate_body(Body &i, Vec const &j_pos, flt const j_mass)
+inline void accelerate_body(Body &i, Vec const &j_pos, flt const j_mass)
 {
    auto const d = j_pos - i.pos;
    auto const r = dot(d, d);
@@ -382,12 +382,12 @@ void accelerate_body(Body &i, Vec const &j_pos, flt const j_mass)
    i.acc += d * F;
 }
 
-void update_body_acceleration(Body &i, Node const &j)
+inline void update_body_acceleration(Body &i, Node const &j)
 {
    accelerate_body(i, j.center, j.mass);
 }
 
-void update_body_acceleration(Body &i, Body const &j)
+inline void update_body_acceleration(Body &i, Body const &j)
 {
    accelerate_body(i, j.pos, j.mass);
 }
