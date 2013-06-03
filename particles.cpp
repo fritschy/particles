@@ -695,6 +695,8 @@ void run_glut(int argc, char **argv, Universe &u)
    glutIdleFunc(cb_idle);
 
    glutMainLoop();
+
+   bh::uni = nullptr;
 }
 #endif
 
