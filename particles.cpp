@@ -37,7 +37,10 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
+#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
 const unsigned NTH = 8;
+#endif
+
 const auto G = 1.0e-4f;
 const auto max_coord = 1000.f;
 
@@ -199,7 +202,9 @@ struct Universe
       Universe *u;
    };
 
+#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
    Work threads[NTH];
+#endif
 
    Universe()
       : bodies()
@@ -208,7 +213,9 @@ struct Universe
       , param()
       , show_tree()
       , bruteforce()
+#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
       , threads()
+#endif
    {
    }
 
@@ -219,7 +226,9 @@ struct Universe
       , param()
       , show_tree()
       , bruteforce()
+#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
       , threads()
+#endif
    {
       param.dt = dt;
       param.beta = beta;
