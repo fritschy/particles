@@ -355,10 +355,10 @@ Vec compute_force(Vec const &a, Vec const &b, flt const m0, flt const m1)
 {
    // computation of F
    const auto d = b - a;
-   const auto r = 1.f / std::sqrt(dot(d, d));
-   const auto F = G * m0 * m1 * r;
+   const auto r = dot(d, d);
+   const auto F = G * m0 * m1 / r;
 
-   return d * F * r;
+   return d * F;
 }
 
 void update_body_acceleration(Body &i, Node const &j)
