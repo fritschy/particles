@@ -128,7 +128,7 @@ struct Node
 
    u32 childs[4];
    union {
-      u32 bodies[4];
+      u32 bodies[3];
       u32 state;
    };
    Vec corner;
@@ -427,6 +427,8 @@ void update_body(Universe &u, u32 q, u32 b)
 {
    if (u.nodes[q].n != 0)
    {
+      /* loop over bodies instead of using the node info, this is in order
+       * to prevent adding our own contribution (if b is per chance in this node) */
       for (u32 i = 0; i < u.nodes[q].n; i++)
          if (u.nodes[q].bodies[i] != b)
             update_body_acceleration(u.bodies[b], u.bodies[u.nodes[q].bodies[i]]);
