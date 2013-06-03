@@ -253,9 +253,9 @@ Quad quadrant_for_body(Universe const &u, Node const &q, u32 b, Vec &coff)
    return Quad(west | (south << 1));
 }
 
-void bhtree_insert(Universe &u, u32 q, u32 b);
+void bhtree_insert(Universe &u, u32 q, u32 b, int depth);
 
-void bhtree_insert_next(Universe &u, u32 q, u32 b)
+void bhtree_insert_next(Universe &u, u32 q, u32 b, int depth)
 {
    Vec coff;
    Quad quad = quadrant_for_body(u, u.nodes[q], b, coff);
@@ -266,13 +266,21 @@ void bhtree_insert_next(Universe &u, u32 q, u32 b)
       u.nodes[q].childs[quad] = u.nodes.size() - 1;
    }
 
-   bhtree_insert(u, u.nodes[q].childs[quad], b);
+   bhtree_insert(u, u.nodes[q].childs[quad], b, depth+1);
 }
 
 // this one really is ugly as hell... using ints all over to get a central "node" allcator
 // in the universe... no fscken idea if it gives us an edge over a more naive aproach.
-void bhtree_insert(Universe &u, u32 q, u32 b)
+void bhtree_insert(Universe &u, u32 q, u32 b, int depth)
 {
+   int const max_depth = 1000;
+
+   if (depth > max_depth) // .... wtf?!
+   {
+      DBG(("bhtree depth exceeded %d current q=%u, b=%u", max_depth, q, b));
+      return;
+   }
+
    if (u.nodes[q].state != Node::Internal && u.nodes[q].n < Node::NumBodies) // insert
    {
       const auto m = u.nodes[q].mass + u.bodies[b].mass;
@@ -287,7 +295,7 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
    if (u.nodes[q].state != Node::Internal) // leaf, need to subdivide and insert
    {
       for (u32 i = 0; i < u.nodes[q].n; i++)
-         bhtree_insert_next(u, q, u.nodes[q].bodies[i]);
+         bhtree_insert_next(u, q, u.nodes[q].bodies[i], depth);
    }
 
    // update current node
@@ -297,7 +305,7 @@ void bhtree_insert(Universe &u, u32 q, u32 b)
    u.nodes[q].n      = 0;
    u.nodes[q].state  = Node::Internal;
 
-   bhtree_insert_next(u, q, b);
+   bhtree_insert_next(u, q, b, depth);
 }
 
 void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_count, std::vector<Body> &res, flt rot)
@@ -351,7 +359,7 @@ void build_bhtree(Universe &u)
          continue;
       }
 
-      bhtree_insert(u, 0, i);
+      bhtree_insert(u, 0, i, 0);
    }
 }
 
