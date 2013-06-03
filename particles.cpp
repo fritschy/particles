@@ -781,7 +781,8 @@ void make_universe(Universe &u, char **argv)
       }
       elifeq("random") {
          bool circle = false;
-         ifeq("circle") { ++argv; circle = true; }
+         argv++;
+         ifeq("circle") { circle = true; } else { --argv; }
          unsigned body_count = strtoul(*++argv, NULL, 10);
          for (unsigned i = 0; i < body_count; i++)
          {
