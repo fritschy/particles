@@ -1,7 +1,7 @@
 OPT = -O3
 WARN = -Wall -Wextra
 STD = -std=c++11
-CXXFLAGS = $(STD) $(OPT) $(WARN)
+CXXFLAGS = $(STD) $(OPT) $(WARN) -g -fno-rtti -fno-exceptions
 CXX ?= g++
 LD = $(CXX)
 LIBS = -pthread -lrt -lGL -lGLU -lglut
