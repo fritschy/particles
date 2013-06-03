@@ -11,6 +11,8 @@ CPPFLAGS =
 ifneq ($(CROSS),)
 CXX := $(CROSS)$(CXX)
 STD = -std=c++0x
+else
+OPT += -march=native
 endif
 
 ifeq ($(NOGUI),1)
