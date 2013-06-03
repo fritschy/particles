@@ -1,11 +1,15 @@
-OPT = -O3 -march=native
+OPT = -O3
 WARN = -Wall -Wextra
-CXXFLAGS = -std=c++11 $(OPT) $(WARN)
+CXXFLAGS = -std=c++0x $(OPT) $(WARN)
 CXX ?= g++
 LD = $(CXX)
-LIBS = -lglut -lGL -lGLU
+LIBS = -pthread -lrt
 LDFLAGS = -Wl,-O3 $(LIBS)
 CPPFLAGS = -DNDEBUG
+
+ifneq ($(CROSS),)
+CXX := $(CROSS)$(CXX)
+endif
 
 ifeq ($(PROF),1)
 LDFLAGS += -pg
@@ -36,6 +40,7 @@ endif
 all: particles
 
 particles: particles.o
+	$(LD) $(LDFLAGS) -o $@ $^
 
 clean:
 	rm -f particles particles.o
