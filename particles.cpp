@@ -456,7 +456,12 @@ void update_forces_threads(Universe &u)
    {
       u.threads[t].id = t;
       u.threads[t].u = &u;
-      pthread_create(&u.threads[t].th, NULL, update_thread, &u.threads[t]);
+      int ret = pthread_create(&u.threads[t].th, NULL, update_thread, &u.threads[t]);
+      if (ret != 0)
+      {
+         DBG(("Could not pthread_create() for id %u", t));
+         std::abort();
+      }
    }
 
    for (u32 t = 0; t < NTH; t++)
