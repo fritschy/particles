@@ -192,6 +192,8 @@ struct Universe
 
    bool              show_tree;
    bool              bruteforce;
+   bool              show_vel;
+   bool              show_acc;
 
    struct Work {
       u32 id;
@@ -210,6 +212,8 @@ struct Universe
       , param()
       , show_tree()
       , bruteforce()
+      , show_vel()
+      , show_acc()
 #if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
       , threads()
 #endif
@@ -223,6 +227,8 @@ struct Universe
       , param()
       , show_tree()
       , bruteforce()
+      , show_vel()
+      , show_acc()
 #if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
       , threads()
 #endif
@@ -516,6 +522,8 @@ Universe *uni;
 
 void show_bhtree(Universe &u)
 {
+   flt pxl_per_unit = 3.f * width / (u.size * 2.f);
+
    if (u.show_tree)
    {
       glColor3f(0.7f,1.0f,0.7f);
@@ -538,6 +546,31 @@ void show_bhtree(Universe &u)
             });
    }
 
+   if (u.show_vel)
+   {
+      glColor3f(1,0,0);
+      glBegin(GL_LINES);
+      std::for_each(u.bodies.cbegin(), u.bodies.cend(),
+            [pxl_per_unit](Body const &b) {
+               glVertex2fv(b.pos.d);
+               glVertex2fv((b.pos + b.vel * pxl_per_unit).d);
+            });
+      glEnd();
+   }
+
+   if (u.show_acc)
+   {
+      pxl_per_unit *= 10.f; // ... not sure if ...
+      glColor3f(0,0,1);
+      glBegin(GL_LINES);
+      std::for_each(u.bodies.cbegin(), u.bodies.cend(),
+            [pxl_per_unit](Body const &b) {
+               glVertex2fv(b.pos.d);
+               glVertex2fv((b.pos + b.acc * pxl_per_unit).d);
+            });
+      glEnd();
+   }
+
    glColor3f(0,0,0);
    glBegin(GL_POINTS);
    std::for_each(u.bodies.cbegin(), u.bodies.cend(),
@@ -557,7 +590,6 @@ void cb_display(void)
    glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT);
 
-   glPointSize(2.f);
 
    show_bhtree(*uni);
 
@@ -616,6 +648,14 @@ void cb_keyboard(unsigned char k, int, int)
    case 'c':
       uni->bodies.clear();
       uni->nodes.clear();
+      break;
+
+   case 'v':
+      uni->show_vel = !uni->show_vel;
+      break;
+
+   case 'a':
+      uni->show_acc = !uni->show_acc;
       break;
 
    case 'h':
