@@ -572,12 +572,9 @@ void show_bhtree(Universe &u)
    }
 
    glColor3f(0,0,0);
-   glBegin(GL_POINTS);
-   std::for_each(u.bodies.cbegin(), u.bodies.cend(),
-         [](Body const &b) {
-            glVertex2fv(b.pos.d);
-         });
-   glEnd();
+   glEnableClientState(GL_VERTEX_ARRAY);
+   glVertexPointer(2, GL_FLOAT, sizeof(Body), u.bodies.front().pos.d);
+   glDrawArrays(GL_POINTS, 0, u.bodies.size());
 }
 
 void cb_display(void)
