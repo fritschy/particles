@@ -125,8 +125,7 @@ struct Body
 struct Node
 {
    enum {
-      Leaf = u32(-1),
-      Internal = u32(-2)
+      Internal = u32(-1)
    };
 
    u32 childs[4];
@@ -153,7 +152,6 @@ struct Node
       , size()
       , n()
    {
-      state = Leaf;
    }
 
    Node(Vec cornr, flt sz)
@@ -165,7 +163,6 @@ struct Node
       , size(sz)
       , n()
    {
-      state = Leaf;
    }
 };
 
