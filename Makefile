@@ -3,12 +3,18 @@ WARN = -Wall -Wextra
 CXXFLAGS = -std=c++0x $(OPT) $(WARN)
 CXX ?= g++
 LD = $(CXX)
-LIBS = -pthread -lrt
+LIBS = -pthread -lrt -lGL -lGLU -lglut
 LDFLAGS = -Wl,-O3 $(LIBS)
-CPPFLAGS = -DNDEBUG
+CPPFLAGS =
 
 ifneq ($(CROSS),)
 CXX := $(CROSS)$(CXX)
+endif
+
+ifeq ($(NOGUI),1)
+LIBS = -pthread -lrt
+else
+CPPFLAGS += -DUSE_GLUT
 endif
 
 ifeq ($(PROF),1)
@@ -35,6 +41,8 @@ ifeq ($(DEBUG),1)
 CXXFLAGS = -O0 -g3 -std=c++11 $(WARN)
 CPPFLAGS = -DNO_THREADED_UPDATE
 LDFLAGS = $(LIBS) -g3
+else
+CPPFLAGS += -DNDEBUG
 endif
 
 all: particles
