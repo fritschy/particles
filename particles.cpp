@@ -697,7 +697,7 @@ void make_universe(Universe &u, char **argv)
          else mass = atof(*++argv);
          assert(mass > 0.f);
          argv++;
-         Vec pos, vel;
+         Vec pos = Vec(), vel = Vec();
          while (*argv)
          {
             ifeq("pos") { pos[0] = atof(*++argv); pos[1] = atof(*++argv); }
