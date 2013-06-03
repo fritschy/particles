@@ -201,8 +201,6 @@ struct Universe
 
    Work threads[NTH];
 
-   void (*scene)(Universe&, size_t);
-
    Universe()
       : bodies()
       , nodes()
@@ -211,11 +209,10 @@ struct Universe
       , show_tree()
       , bruteforce()
       , threads()
-      , scene()
    {
    }
 
-   Universe(flt s, flt dt, flt beta, void (*scn)(Universe&,size_t))
+   Universe(flt s, flt dt, flt beta)
       : bodies()
       , nodes()
       , size(s)
@@ -223,7 +220,6 @@ struct Universe
       , show_tree()
       , bruteforce()
       , threads()
-      , scene(scn)
    {
       param.dt = dt;
       param.beta = beta;
@@ -328,50 +324,6 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
                          Vec(),
                          mass});
    }
-}
-
-void populate_universe(Universe &u, size_t body_count, void (*scene)(Universe&, size_t))
-{
-   u = Universe(max_coord, 0.05f, 0.5f, scene);
-
-   scene(u, body_count);
-
-   /* std::for_each(u.bodies.begin(), u.bodies.end(), [u](Body &b) { }); */
-}
-
-void scene_two_galaxies(Universe &u, size_t body_count)
-{
-   u.param.min_mass = 1e2f;
-   u.param.max_mass = 1e2f;
-   u.param.dt = 0.06125f / std::sqrt(body_count / 100000.f);
-
-   create_galaxy(u, Vec{{0,  300}},
-         Vec{{4,0}} * 2 / std::sqrt(40000.f / body_count),
-         50,
-         body_count / 4,
-         u.bodies,
-         -1.f);
-
-   create_galaxy(u, Vec{{0, -300}},
-         Vec{{-1,0}} * 2 / std::sqrt(40000.f / body_count),
-         300,
-         body_count * 3 / 4,
-         u.bodies,
-         -1.f);
-}
-
-void scene_galaxy(Universe &u, size_t body_count)
-{
-   u.param.min_mass = 1e2f;
-   u.param.max_mass = 1e2f;
-   u.param.dt = 0.125f / std::sqrt(body_count / 100000.f);
-
-   create_galaxy(u, Vec(),
-         Vec(),
-         u.size,
-         body_count,
-         u.bodies,
-         -1.f);
 }
 
 void build_bhtree(Universe &u)
@@ -642,14 +594,6 @@ void cb_keyboard(unsigned char k, int, int)
       uni->show_tree = !uni->show_tree;
       break;
 
-   case 'R':
-      {
-         bool st = uni->show_tree;
-         populate_universe(*uni, uni->bodies.size(), uni->scene);
-         uni->show_tree = st;
-      }
-      break;
-
    case 'c':
       uni->bodies.clear();
       uni->nodes.clear();
@@ -711,7 +655,7 @@ void make_universe(Universe &u, char **argv)
    // galaxy n:<unsigned> size <float> pos x:<float> y:<float> vel x:<float> y:<float>
    // random [circle] body_count:<unsigned>
 
-   u = Universe(1000.f, 0.05f, 0.5f, bh::scene_galaxy);
+   u = Universe(1000.f, 0.05f, 0.5f);
 
    char const *two_galaxies[] = {
       "min_mass", "100", "max_mass", "100", "dt", "0.06125", "size", "1000",
@@ -820,12 +764,12 @@ void make_universe(Universe &u, char **argv)
 #undef atof
 }
 
-void benchmark()
+void benchmark(char **argv)
 {
-   char const *argv[] = { "size", "1000", "galaxy", "10000", "size", "1000", NULL };
+   char const *argv2[] = { "size", "1000", "galaxy", "10000", "size", "1000", NULL };
 
    Universe u;
-   bh::make_universe(u, (char**)argv);
+   bh::make_universe(u, *argv ? argv : (char**)argv2);
 
    flt t0 = useconds() / 1e3;
    for (int j = 0; j < 1000; j++)
@@ -873,7 +817,7 @@ int main(int argc, char **argv)
 
    run_glut(argc, argv, u);
 #else
-   bh::benchmark();
+   bh::benchmark(argv+1);
 #endif
 
    return 0;
