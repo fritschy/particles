@@ -392,7 +392,7 @@ void update_body_acceleration(Body &i, Body const &j)
    accelerate_body(i, j.pos, j.mass);
 }
 
-void update_body(Universe &u, u32 q, u32 b)
+void update_body(Universe &u, u32 q, u32 b, flt squared_beta)
 {
    if (u.nodes[q].state != Node::Internal)
    {
@@ -407,7 +407,7 @@ void update_body(Universe &u, u32 q, u32 b)
    const auto s = u.nodes[q].size * u.nodes[q].size;
    const auto dv = u.nodes[q].center - u.bodies[b].pos;
 
-   if (s / dot(dv, dv) < u.param.beta)
+   if (s / dot(dv, dv) < squared_beta)
    {
       update_body_acceleration(u.bodies[b], u.nodes[q]);
       return;
@@ -417,7 +417,7 @@ void update_body(Universe &u, u32 q, u32 b)
    {
       if (u.nodes[q].childs[i])
       {
-         update_body(u, u.nodes[q].childs[i], b);
+         update_body(u, u.nodes[q].childs[i], b, squared_beta);
       }
    }
 }
@@ -425,13 +425,14 @@ void update_body(Universe &u, u32 q, u32 b)
 void update_forces(Universe &u)
 {
    u32 const iend = u.bodies.size();
+   flt const squared_beta = u.param.beta * u.param.beta;
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static,500)
 #endif
    for (u32 i = 0; i < iend; i++)
    {
       u.bodies[i].acc = Vec();
-      update_body(u, 0, i);
+      update_body(u, 0, i, squared_beta);
    }
 }
 
@@ -440,11 +441,12 @@ void *update_thread(void *data)
 {
    Universe::Work &w = *static_cast<Universe::Work*>(data);
    Universe &u = *w.u;
+   flt const squared_beta = u.param.beta * u.param.beta;
 
    for (u32 i = w.id, iend = u.bodies.size(); i < iend; i+=NTH)
    {
       u.bodies[i].acc = Vec();
-      update_body(u, 0, i);
+      update_body(u, 0, i, squared_beta);
    }
 
    return 0;
