@@ -1,0 +1,2 @@
+bhtree impl does not check for very-near bodies which force the tree to subdivide very deeply.
+bhtree does not check for empty-area with no bodies.
