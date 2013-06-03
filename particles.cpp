@@ -19,7 +19,9 @@
 
 #include <unistd.h>
 
+#ifdef USE_GLUT
 #include <GL/glut.h>
+#endif
 
 #define DBG(X) (printf("DBG %s:%d: ", __FILE__, __LINE__), \
                 printf X, \
@@ -119,37 +121,48 @@ struct Body
 
 struct Node
 {
-   enum State
-   {
-      Empty    = u32(-2),
-      Internal = u32(-1)
+   enum {
+      Leaf = u32(-1),
+      Internal = u32(-2)
    };
 
    u32 childs[4];
+   union {
+      u32 bodies[3];
+      u32 state;
+   };
    Vec corner;
    Vec center;      // of mass
    flt mass;        // accumulated mass of all children
-   u32 body;        // index of body or State
    flt size;        // edge length of the square
+   u32 n;
+
+   enum {
+      NumBodies = sizeof(Node::bodies) / sizeof(Node::bodies[0])
+   };
 
    Node()
       : childs()
+      , bodies()
       , corner()
       , center()
       , mass()
-      , body(Empty)
       , size()
+      , n()
    {
+      state = Leaf;
    }
 
    Node(Vec cornr, flt sz)
       : childs()
+      , bodies()
       , corner(cornr)
       , center()
       , mass()
-      , body(Empty)
       , size(sz)
+      , n()
    {
+      state = Leaf;
    }
 };
 
@@ -255,24 +268,29 @@ void bhtree_insert_next(Universe &u, u32 q, u32 b)
 // in the universe... no fscken idea if it gives us an edge over a more naive aproach.
 void bhtree_insert(Universe &u, u32 q, u32 b)
 {
-   if (u.nodes[q].body == Node::Empty) // insert
+   if (u.nodes[q].state != Node::Internal && u.nodes[q].n < Node::NumBodies) // insert
    {
-      u.nodes[q].body = b;
-      u.nodes[q].mass = u.bodies[b].mass;
-      u.nodes[q].center = u.bodies[b].pos;
+      const auto m = u.nodes[q].mass + u.bodies[b].mass;
+
+      u.nodes[q].bodies[u.nodes[q].n++] = b;
+      u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies[b].pos * u.bodies[b].mass) / m;
+      u.nodes[q].mass = m;
+
       return;
    }
-
-   if (u.nodes[q].body != Node::Internal) // leaf, need to subdivide and insert
+   
+   if (u.nodes[q].state != Node::Internal) // leaf, need to subdivide and insert
    {
-      bhtree_insert_next(u, q, u.nodes[q].body);
+      for (u32 i = 0; i < u.nodes[q].n; i++)
+         bhtree_insert_next(u, q, u.nodes[q].bodies[i]);
    }
 
    // update current node
    const auto m = u.nodes[q].mass + u.bodies[b].mass;
-   u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies.at(b).pos * u.bodies.at(b).mass) / m;
+   u.nodes[q].center = (u.nodes[q].center * u.nodes[q].mass + u.bodies[b].pos * u.bodies[b].mass) / m;
    u.nodes[q].mass   = m;
-   u.nodes[q].body   = Node::Internal;
+   u.nodes[q].n      = 0;
+   u.nodes[q].state  = Node::Internal;
 
    bhtree_insert_next(u, q, b);
 }
@@ -407,14 +425,13 @@ void update_body_acceleration(Body &i, Body const &j)
 
 void update_body(Universe &u, u32 q, u32 b)
 {
-   if (u.nodes[q].body == b)
+   if (u.nodes[q].state != Node::Internal)
    {
-      return;
-   }
-
-   if (u.nodes[q].body != Node::Internal)
-   {
-      update_body_acceleration(u.bodies[b], u.bodies[u.nodes[q].body]);
+      /* loop over bodies instead of using the node info, this is in order
+       * to prevent adding our own contribution (if b is per chance in this node) */
+      for (u32 i = 0; i < u.nodes[q].n; i++)
+         if (u.nodes[q].bodies[i] != b)
+            update_body_acceleration(u.bodies[b], u.bodies[u.nodes[q].bodies[i]]);
       return;
    }
 
@@ -424,15 +441,14 @@ void update_body(Universe &u, u32 q, u32 b)
    if (s / dot(dv, dv) < u.param.beta)
    {
       update_body_acceleration(u.bodies[b], u.nodes[q]);
+      return;
    }
-   else
+
+   for (u32 i = 0; i < 4; i++)
    {
-      for (u32 i = 0; i < 4; i++)
+      if (u.nodes[q].childs[i])
       {
-         if (u.nodes[q].childs[i])
-         {
-            update_body(u, u.nodes[q].childs[i], b);
-         }
+         update_body(u, u.nodes[q].childs[i], b);
       }
    }
 }
@@ -523,6 +539,7 @@ void update(Universe &u)
    });
 }
 
+#ifdef USE_GLUT
 static int width, height;
 Universe *uni;
 
@@ -533,10 +550,7 @@ void show_bhtree(Universe &u)
       glColor3f(0.7f,1.0f,0.7f);
       std::for_each(u.nodes.cbegin(), u.nodes.cend(),
             [u](Node const &q) {
-               if (q.body == Node::Empty)
-                  return;
-
-               if (width / q.size > 200.f)
+               if (q.size / width > 2.f)
                   return;
 
                flt v[2] = { q.corner[0], q.corner[1] };
@@ -682,6 +696,7 @@ void run_glut(int argc, char **argv, Universe &u)
 
    glutMainLoop();
 }
+#endif
 
 void make_universe(Universe &u, char **argv)
 {
@@ -715,9 +730,9 @@ void make_universe(Universe &u, char **argv)
       return;
    }
 
-#define ifeq(x) if (std::strcmp(*argv, (x)) == 0) // && printf("got %s\n", (x)))
+#define ifeq(x) if (std::strcmp(*argv, (x)) == 0 && printf("got %s\n", (x)))
 #define elifeq(x) else ifeq(x)
-//#define atof(x) ([u](char const*a)->flt{ flt f = atof(a); printf("got %f\n", f); return f; })(x)
+#define atof(x) ([u](char const*a)->flt{ flt f = atof(a); printf("got %f\n", f); return f; })(x)
    while (*argv)
    {
       ifeq("dt") { u.param.dt = atof(*++argv); }
@@ -767,7 +782,8 @@ void make_universe(Universe &u, char **argv)
       }
       elifeq("random") {
          bool circle = false;
-         ifeq("circle") { ++argv; circle = true; }
+         argv++;
+         ifeq("circle") { circle = true; } else { --argv; }
          unsigned body_count = strtoul(*++argv, NULL, 10);
          for (unsigned i = 0; i < body_count; i++)
          {
@@ -799,6 +815,29 @@ void make_universe(Universe &u, char **argv)
    }
 #undef ifeq
 #undef elifeq
+#undef atof
+}
+
+void benchmark()
+{
+   char const *argv[] = { "size", "1000", "galaxy", "10000", "size", "1000", NULL };
+
+   Universe u;
+   bh::make_universe(u, (char**)argv);
+
+   flt t0 = useconds() / 1e3;
+   for (int j = 0; j < 1000; j++)
+   {
+      fprintf(stderr, ".");
+      update(u);
+   }
+   t0 = useconds() / 1e3 - t0;
+
+   printf("\n%s %u :: dt=%f Physics @ %0.2ffps\n",
+         u.bruteforce ? "brute-force" : "Barnes-Hut",
+         unsigned(u.bodies.size()),
+         u.param.dt,
+         1e6f / t0);
 }
 
 } // namespace bh
@@ -825,11 +864,15 @@ int main(int argc, char **argv)
       exit(1);
    }
 
+#ifdef USE_GLUT
    bh::Universe u;
 
    bh::make_universe(u, argv+1);
 
    run_glut(argc, argv, u);
+#else
+   bh::benchmark();
+#endif
 
    return 0;
 }

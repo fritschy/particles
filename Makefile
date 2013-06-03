@@ -1,11 +1,23 @@
-OPT = -O3 -march=native
+OPT = -O3
 WARN = -Wall -Wextra
-CXXFLAGS = -std=c++11 $(OPT) $(WARN)
+STD = -std=c++11
+CXXFLAGS = $(STD) $(OPT) $(WARN)
 CXX ?= g++
 LD = $(CXX)
-LIBS = -lglut -lGL -lGLU
+LIBS = -pthread -lrt -lGL -lGLU -lglut
 LDFLAGS = -Wl,-O3 $(LIBS)
-CPPFLAGS = -DNDEBUG
+CPPFLAGS =
+
+ifneq ($(CROSS),)
+CXX := $(CROSS)$(CXX)
+STD = -std=c++0x
+endif
+
+ifeq ($(NOGUI),1)
+LIBS = -pthread -lrt
+else
+CPPFLAGS += -DUSE_GLUT
+endif
 
 ifeq ($(PROF),1)
 LDFLAGS += -pg
@@ -31,11 +43,14 @@ ifeq ($(DEBUG),1)
 CXXFLAGS = -O0 -g3 -std=c++11 $(WARN)
 CPPFLAGS = -DNO_THREADED_UPDATE
 LDFLAGS = $(LIBS) -g3
+else
+CPPFLAGS += -DNDEBUG
 endif
 
 all: particles
 
 particles: particles.o
+	$(LD) $(LDFLAGS) -o $@ $^
 
 clean:
 	rm -f particles particles.o
