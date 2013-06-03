@@ -19,7 +19,9 @@
 
 #include <unistd.h>
 
+#ifdef USE_GLUT
 #include <GL/glut.h>
+#endif
 
 #define DBG(X) (printf("DBG %s:%d: ", __FILE__, __LINE__), \
                 printf X, \
@@ -35,7 +37,7 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
-const unsigned NTH = 8;
+const unsigned NTH = 4;
 const auto G = 1.0e-4f;
 const auto max_coord = 1000.f;
 
@@ -534,6 +536,7 @@ void update(Universe &u)
    });
 }
 
+#ifdef USE_GLUT
 static int width, height;
 Universe *uni;
 
@@ -690,6 +693,9 @@ void run_glut(int argc, char **argv, Universe &u)
 
    glutMainLoop();
 }
+#endif
+
+
 
 void make_universe(Universe &u, char **argv)
 {
@@ -723,9 +729,9 @@ void make_universe(Universe &u, char **argv)
       return;
    }
 
-#define ifeq(x) if (std::strcmp(*argv, (x)) == 0) // && printf("got %s\n", (x)))
+#define ifeq(x) if (std::strcmp(*argv, (x)) == 0 && printf("got %s\n", (x)))
 #define elifeq(x) else ifeq(x)
-//#define atof(x) ([u](char const*a)->flt{ flt f = atof(a); printf("got %f\n", f); return f; })(x)
+#define atof(x) ([u](char const*a)->flt{ flt f = atof(a); printf("got %f\n", f); return f; })(x)
    while (*argv)
    {
       ifeq("dt") { u.param.dt = atof(*++argv); }
@@ -807,6 +813,29 @@ void make_universe(Universe &u, char **argv)
    }
 #undef ifeq
 #undef elifeq
+#undef atof
+}
+
+void benchmark()
+{
+   char const *argv[] = { "size", "1000", "galaxy", "10000", "size", "1000", NULL };
+
+   Universe u;
+   bh::make_universe(u, (char**)argv);
+
+   flt t0 = useconds() / 1e3;
+   for (int j = 0; j < 1000; j++)
+   {
+      fprintf(stderr, ".");
+      update(u);
+   }
+   t0 = useconds() / 1e3 - t0;
+
+   printf("\n%s %u :: dt=%f Physics @ %0.2ffps\n",
+         u.bruteforce ? "brute-force" : "Barnes-Hut",
+         unsigned(u.bodies.size()),
+         u.param.dt,
+         1e6f / t0);
 }
 
 } // namespace bh
@@ -833,11 +862,13 @@ int main(int argc, char **argv)
       exit(1);
    }
 
+#ifdef USE_GLUT
    bh::Universe u;
-
    bh::make_universe(u, argv+1);
-
    run_glut(argc, argv, u);
+#else
+   bh::benchmark();
+#endif
 
    return 0;
 }
