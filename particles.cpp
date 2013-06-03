@@ -698,8 +698,8 @@ void make_universe(Universe &u, char **argv)
 
    char const *two_galaxies[] = {
       "min_mass", "100", "max_mass", "100", "dt", "0.06125", "size", "1000",
-      "galaxy", "2500", "pos", "0", "300", "vel", "8", "0", "size", "50", "rot", "-1",
-      "galaxy", "7500", "pos", "0", "-300", "vel", "-2", "0", "size", "300", "rot", "-1",
+      "galaxy", "2500", "pos", "0", "150", "vel", "4", "0", "size", "50", "rot", "-1",
+      "galaxy", "7500", "pos", "0", "-300", "vel", "-1", "0", "size", "300", "rot", "-1",
       NULL
    };
 
