@@ -1,2 +1,4 @@
 bhtree impl does not check for very-near bodies which force the tree to subdivide very deeply.
+ - this is alleviated by using multi-body leafs. It is still a possible cause of pain,
+   but much more less o.
 bhtree does not check for empty-area with no bodies.
