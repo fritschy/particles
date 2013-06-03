@@ -371,28 +371,25 @@ void depopulate_bhtree(Universe &u)
    u.nodes.clear();
 }
 
-Vec compute_force(Vec const &a, Vec const &b, flt const m0, flt const m1)
+void accelerate_body(Body &i, Vec const &j_pos, flt const j_mass)
 {
-   // computation of F
-   const auto d = b - a;
-   const auto r = dot(d, d);
-   const auto F = G * m0 * m1 / r;
+   auto const d = j_pos - i.pos;
+   auto const r = dot(d, d);
+   auto const F = G * j_mass / r;
 
-   return d * F;
+   // for momentum conservation would need to divide by i's mass, so
+   // left it out completely.
+   i.acc += d * F;
 }
 
 void update_body_acceleration(Body &i, Node const &j)
 {
-   const Vec F = compute_force(i.pos, j.center, i.mass, j.mass);
-
-   i.acc += F / i.mass;
+   accelerate_body(i, j.center, j.mass);
 }
 
 void update_body_acceleration(Body &i, Body const &j)
 {
-   const Vec F = compute_force(i.pos, j.pos, i.mass, j.mass);
-
-   i.acc += F / i.mass;
+   accelerate_body(i, j.pos, j.mass);
 }
 
 void update_body(Universe &u, u32 q, u32 b)
