@@ -650,6 +650,11 @@ void cb_keyboard(unsigned char k, int, int)
       exit(0);
       break;
 
+   case '*':
+      uni->param.dt *= -1.f;
+      printf("dt = %f\n", uni->param.dt);
+      break;
+
    case '+':
       uni->param.dt *= 1.1f;
       printf("dt = %f\n", uni->param.dt);
