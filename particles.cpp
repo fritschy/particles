@@ -428,7 +428,7 @@ void *update_thread(void *data)
       auto const squared_beta = u.param.beta * u.param.beta;
       auto const iend = u.bodies.size();
 
-      auto const nwork = iend / Universe::NumThreads;
+      auto const nwork = (iend + Universe::NumThreads - 1) / Universe::NumThreads;
       auto const wbegin = w.id * nwork;
       auto const wend = std::min((w.id + 1) * nwork, iend);
 
