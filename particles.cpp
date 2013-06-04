@@ -445,8 +445,8 @@ void *update_thread(void *data)
          b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
       }
 
-      pthread_barrier_wait(&u.tb);
       pthread_mutex_unlock(&w.m);
+      pthread_barrier_wait(&u.tb);
    }
 
    return nullptr;

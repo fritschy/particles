@@ -34,11 +34,6 @@ endif
 ifeq ($(OPENMP),1)
 LDFLAGS += -fopenmp
 CXXFLAGS += -fopenmp
-else
-ifeq ($(CXX),g++)
-LDFLAGS += -fopenmp
-CXXFLAGS += -fopenmp
-endif
 endif
 
 ifeq ($(DEBUG),1)
