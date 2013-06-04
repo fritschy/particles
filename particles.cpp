@@ -195,7 +195,15 @@ struct Universe
       u32 id;
       pthread_t th;
       Universe *u;
+
+      pthread_mutex_t m;
+      pthread_cond_t  c;
    };
+
+   enum { NumThreads = 8 };
+
+   Work threads[NumThreads];
+   pthread_barrier_t tb;
 
    inline Universe()
       : bodies()
@@ -206,6 +214,8 @@ struct Universe
       , bruteforce()
       , show_vel()
       , show_acc()
+      , threads()
+      , tb()
    {
    }
 
@@ -218,6 +228,8 @@ struct Universe
       , bruteforce()
       , show_vel()
       , show_acc()
+      , threads()
+      , tb()
    {
       param.dt = dt;
       param.beta = beta;
@@ -408,10 +420,84 @@ void update_body(Universe &u, u32 q, u32 b, flt squared_beta)
    }
 }
 
+void *update_thread(void *data)
+{
+   Universe::Work &w = *(Universe::Work*) data;
+   Universe &u = *w.u;
+
+   while (1)
+   {
+      pthread_mutex_lock(&w.m);
+      pthread_cond_wait(&w.c, &w.m);
+
+      const auto dt = u.param.dt;
+      const auto squared_beta = u.param.beta * u.param.beta;
+
+      u32 const iend = u.bodies.size();
+      for (u32 i = w.id; i < iend; i += Universe::NumThreads)
+      {
+         Body &b = u.bodies[i];
+
+         b.pos += b.vel * 0.5f * dt; // half dt psition update
+         b.acc = Vec();
+         update_body(u, 0, i, squared_beta);
+         b.vel += b.acc * dt;        //      dt velocity update
+         b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
+      }
+
+      pthread_barrier_wait(&u.tb);
+      pthread_mutex_unlock(&w.m);
+   }
+
+   return nullptr;
+}
+
+void init_threading(Universe &u)
+{
+   static bool inited;
+
+   if (! inited)
+   {
+      inited = true;
+
+      pthread_barrier_init(&u.tb, NULL, Universe::NumThreads+1);
+
+      pthread_attr_t a;
+      pthread_attr_init(&a);
+      pthread_attr_setdetachstate(&a, PTHREAD_CREATE_DETACHED);
+
+      for (int i = 0; i < Universe::NumThreads; i++)
+      {
+         u.threads[i].id = i;
+         u.threads[i].u = &u;
+         u.threads[i].c = PTHREAD_COND_INITIALIZER;
+         u.threads[i].m = PTHREAD_MUTEX_INITIALIZER;
+         pthread_create(&u.threads[i].th, &a, update_thread, u.threads + i);
+      }
+
+      pthread_attr_destroy(&a);
+   }
+}
+
+void update_threaded(Universe &u)
+{
+   init_threading(u);
+
+   for (int i = 0; i < Universe::NumThreads; i++)
+   {
+      pthread_cond_signal(&u.threads[i].c);
+   }
+
+   pthread_barrier_wait(&u.tb);
+}
+
 void update(Universe &u)
 {
    build_bhtree(u);
 
+#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
+   update_threaded(u);
+#else
    const auto dt = u.param.dt;
    const auto squared_beta = u.param.beta * u.param.beta;
 
@@ -431,6 +517,7 @@ void update(Universe &u)
       b.vel += b.acc * dt;        //      dt velocity update
       b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
    }
+#endif
 }
 
 void add_n_random(Universe &u, unsigned body_count, bool circle)
