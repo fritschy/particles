@@ -37,10 +37,6 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
-#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
-const unsigned NTH = 8;
-#endif
-
 const auto G = 1.0e-4f;
 const auto max_coord = 1000.f;
 
@@ -201,10 +197,6 @@ struct Universe
       Universe *u;
    };
 
-#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
-   Work threads[NTH];
-#endif
-
    inline Universe()
       : bodies()
       , nodes()
@@ -214,9 +206,6 @@ struct Universe
       , bruteforce()
       , show_vel()
       , show_acc()
-#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
-      , threads()
-#endif
    {
    }
 
@@ -229,9 +218,6 @@ struct Universe
       , bruteforce()
       , show_vel()
       , show_acc()
-#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
-      , threads()
-#endif
    {
       param.dt = dt;
       param.beta = beta;
@@ -422,97 +408,29 @@ void update_body(Universe &u, u32 q, u32 b, flt squared_beta)
    }
 }
 
-void update_forces(Universe &u)
-{
-   u32 const iend = u.bodies.size();
-   flt const squared_beta = u.param.beta * u.param.beta;
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,500)
-#endif
-   for (u32 i = 0; i < iend; i++)
-   {
-      u.bodies[i].acc = Vec();
-      update_body(u, 0, i, squared_beta);
-   }
-}
-
-#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
-void *update_thread(void *data)
-{
-   Universe::Work &w = *static_cast<Universe::Work*>(data);
-   Universe &u = *w.u;
-   flt const squared_beta = u.param.beta * u.param.beta;
-
-   for (u32 i = w.id, iend = u.bodies.size(); i < iend; i+=NTH)
-   {
-      u.bodies[i].acc = Vec();
-      update_body(u, 0, i, squared_beta);
-   }
-
-   return 0;
-}
-
-void update_forces_threads(Universe &u)
-{
-   for (u32 t = 0; t < NTH; t++)
-   {
-      u.threads[t].id = t;
-      u.threads[t].u = &u;
-      int ret = pthread_create(&u.threads[t].th, NULL, update_thread, &u.threads[t]);
-      if (ret != 0)
-      {
-         DBG(("Could not pthread_create() for id %u", t));
-         std::abort();
-      }
-   }
-
-   for (u32 t = 0; t < NTH; t++)
-   {
-      pthread_join(u.threads[t].th, NULL);
-   }
-}
-#endif
-
-void update_forces_brute(Universe &u)
-{
-   u32 const iend = u.bodies.size();
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,500)
-#endif
-   for (u32 i = 0; i < iend; i++)
-   {
-      u.bodies[i].acc = Vec();
-      for(u32 j = 0; j < iend; j++)
-         if (i != j)
-            update_body_acceleration(u.bodies[i], u.bodies[j]);
-   }
-}
-
 void update(Universe &u)
 {
-   if (u.bruteforce)
-   {
-      depopulate_bhtree(u);
-      update_forces_brute(u);
-   }
-   else
-   {
-      build_bhtree(u);
-#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
-      update_forces_threads(u);
-#else
-      update_forces(u);
-#endif
-   }
+   build_bhtree(u);
 
    const auto dt = u.param.dt;
+   const auto squared_beta = u.param.beta * u.param.beta;
 
-   // leapfrog integration
-   std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
-         b.pos += b.vel * 0.5f * dt; // half dt psition update
-         b.vel += b.acc * dt;        //      dt velocity update
-         b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
-   });
+   u32 const iend = u.bodies.size();
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,500)
+#endif
+   for (u32 i = 0; i < iend; i++)
+   {
+      Body &b = u.bodies[i];
+
+      b.pos += b.vel * 0.5f * dt; // half dt psition update
+
+      b.acc = Vec();
+      update_body(u, 0, i, squared_beta);
+
+      b.vel += b.acc * dt;        //      dt velocity update
+      b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
+   }
 }
 
 void add_n_random(Universe &u, unsigned body_count, bool circle)
