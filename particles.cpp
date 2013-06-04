@@ -844,13 +844,19 @@ void make_universe(Universe &u, char **argv)
 
 void benchmark(Universe &u)
 {
-   flt t0 = useconds() / 1e3;
+   flt t0 = useconds() / 1e3f;
+   flt t1 = t0;
    for (int j = 0; j < 1000; j++)
    {
-      fprintf(stderr, ".");
+      flt t;
+      if ((t = useconds() / 1e3f) - t1 > 100)
+      {
+         fprintf(stderr, ".");
+         t1 = t;
+      }
       update(u);
    }
-   t0 = useconds() / 1e3 - t0;
+   t0 = useconds() / 1e3f - t0;
 
    printf("\n%s %u :: dt=%f Physics @ %0.2ffps\n",
          u.bruteforce ? "brute-force" : "Barnes-Hut",
