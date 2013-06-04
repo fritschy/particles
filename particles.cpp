@@ -515,6 +515,29 @@ void update(Universe &u)
    });
 }
 
+void add_n_random(Universe &u, unsigned body_count, bool circle)
+{
+   for (unsigned i = 0; i < body_count; i++)
+   {
+      Vec pos = Vec{{frnd(2)-1, frnd(2)-1}} * u.size;
+
+      if (circle)
+      {
+         while (pos[0]*pos[0] + pos[1]*pos[1] > u.size * u.size)
+         {
+            pos = Vec{{frnd(2)-1, frnd(2)-1}} * u.size;
+         }
+      }
+
+      u.bodies.push_back(Body{
+            pos,
+            Vec(),
+            Vec(),
+            frnd(u.param.max_mass - u.param.min_mass) + u.param.min_mass
+            });
+   }
+}
+
 #ifdef USE_GLUT
 static int width, height;
 Universe *uni;
@@ -655,22 +678,11 @@ void cb_keyboard(unsigned char k, int, int)
       break;
 
    case 'h':
-      {
-         for (int i = 0; i < 1000; i++)
-         {
-            Vec pos;
-            do {
-               pos = Vec{{frnd(2)-1, frnd(2)-1}} * uni->size;
-            } while (pos[0]*pos[0] + pos[1]*pos[1] > uni->size * uni->size);
+      add_n_random(*uni, 1000, true);
+      break;
 
-            uni->bodies.insert(uni->bodies.end(), Body{
-               pos,
-               Vec(),
-               Vec(),
-               frnd(uni->param.max_mass - uni->param.min_mass) + uni->param.min_mass
-            });
-         }
-      }
+   case 'H':
+      add_n_random(*uni, 1000, false);
       break;
 
    case 'b':
@@ -699,6 +711,8 @@ void run_glut(int argc, char **argv, Universe &u)
 }
 #endif
 
+void benchmark(Universe &u);
+
 void make_universe(Universe &u, char **argv)
 {
    // size <float>
@@ -713,7 +727,7 @@ void make_universe(Universe &u, char **argv)
    u = Universe(1000.f, 0.05f, 0.5f);
 
    char const *two_galaxies[] = {
-      "min_mass", "100", "max_mass", "100", "dt", "0.06125", "size", "1000",
+      "min_mass", "100", "max_mass", "100", "dt", "0.125", "size", "800",
       "galaxy", "2500", "pos", "0", "150", "vel", "4", "0", "size", "50", "rot", "-1",
       "galaxy", "7500", "pos", "0", "-300", "vel", "-1", "0", "size", "300", "rot", "-1",
       NULL
@@ -737,6 +751,36 @@ void make_universe(Universe &u, char **argv)
    while (*argv)
    {
       ifeq("dt") { u.param.dt = atof(*++argv); }
+      elifeq("benchmark") {
+         benchmark(u);
+         exit(0);
+      }
+      elifeq("--help") {
+         printf("Usage: particles [universe]\n\n");
+         printf("Universe spec:\n");
+         printf(
+            "   size <float>\n"
+            "   beta <float>\n"
+            "   dt <float>\n"
+            "   min_mass <float>\n"
+            "   max_mass <float>\n"
+            "   body mass:<float> [pos x:<float> y:<float>] [vel x:<float> y:<float>]\n"
+            "   benchmark\n"
+            "   scene <name>\n"
+            "   galaxy n:<unsigned> size <float> [pos x:<float> y:<float>] [vel x:<float> y:<float>]\n"
+            "   random [circle] body_count:<unsigned>\n");
+         printf("\nExample Scenes:\n");
+         char const **scenes[] = { galaxy, two_galaxies, NULL };
+         char const *names[] = { "galaxy", "two-galaxies" };
+         for (int i = 0; scenes[i]; i++)
+         {
+            printf("scene %s:\n  ", names[i]);
+            for (int j = 0; scenes[i][j]; j++)
+               printf("%s ", scenes[i][j]);
+            printf("\n");
+         }
+         exit(1);
+      }
       elifeq("size") { u.size = atof(*++argv); }
       elifeq("beta") { u.param.beta = atof(*++argv); }
       elifeq("max_mass") { u.param.max_mass = atof(*++argv); }
@@ -786,28 +830,7 @@ void make_universe(Universe &u, char **argv)
          argv++;
          ifeq("circle") { circle = true; } else { --argv; }
          unsigned body_count = strtoul(*++argv, NULL, 10);
-         for (unsigned i = 0; i < body_count; i++)
-         {
-            Vec pos;
-
-            if (circle)
-            {
-               do {
-                  pos = Vec{{frnd(2)-1, frnd(2)-1}} * u.size;
-               } while (pos[0]*pos[0] + pos[1]*pos[1] > u.size * u.size);
-            }
-            else
-            {
-               pos = Vec{{frnd(2)-1, frnd(2)-1}} * u.size;
-            }
-
-            u.bodies.push_back(Body{
-               pos,
-               Vec(),
-               Vec(),
-               frnd(u.param.max_mass - u.param.min_mass) + u.param.min_mass
-            });
-         }
+         add_n_random(u, body_count, circle);
       }
       else
       {
@@ -819,13 +842,8 @@ void make_universe(Universe &u, char **argv)
 #undef atof
 }
 
-void benchmark(char **argv)
+void benchmark(Universe &u)
 {
-   char const *argv2[] = { "size", "1000", "galaxy", "10000", "size", "1000", NULL };
-
-   Universe u;
-   bh::make_universe(u, *argv ? argv : (char**)argv2);
-
    flt t0 = useconds() / 1e3;
    for (int j = 0; j < 1000; j++)
    {
@@ -845,34 +863,14 @@ void benchmark(char **argv)
 
 int main(int argc, char **argv)
 {
-   if (argv[1] && strcmp(argv[1], "--help") == 0)
-   {
-      printf("Usage: %s [universe]\n\n", *argv);
-      printf("Universe spec:\n");
-      printf(
-         "   size <float>\n"
-         "   beta <float>\n"
-         "   dt <float>\n"
-         "   min_mass <float>\n"
-         "   max_mass <float>\n"
-         "   body mass:<float> [pos x:<float> y:<float>] [vel x:<float> y:<float>]\n"
-         "   scene <name>\n"
-         "   galaxy n:<unsigned> size <float> [pos x:<float> y:<float>] [vel x:<float> y:<float>]\n"
-         "   random [circle] body_count:<unsigned>\n");
-      printf("\nExample:\n");
-      printf("%s dt 0.5 beta 10 size 1000 galaxy 15000 pos 0 300 vel 2 0 size 500 galaxy 5000 pos 0 -300 vel -4 0 size 100\n", *argv);
-
-      exit(1);
-   }
-
-#ifdef USE_GLUT
    bh::Universe u;
 
    bh::make_universe(u, argv+1);
 
+#ifdef USE_GLUT
    run_glut(argc, argv, u);
 #else
-   bh::benchmark(argv+1);
+   bh::benchmark(u);
 #endif
 
    return 0;
