@@ -660,17 +660,17 @@ void cb_keyboard(unsigned char k, int, int)
 
    case '*':
       uni->param.dt *= -1.f;
-      printf("dt = %f\n", uni->param.dt);
+      printf("dt %f\n", uni->param.dt);
       break;
 
    case '+':
       uni->param.dt *= 1.1f;
-      printf("dt = %f\n", uni->param.dt);
+      printf("dt %f\n", uni->param.dt);
       break;
 
    case '-':
       uni->param.dt *= 1.f / 1.1f;
-      printf("dt = %f\n", uni->param.dt);
+      printf("dt %f\n", uni->param.dt);
       break;
 
    case 't':
@@ -680,6 +680,7 @@ void cb_keyboard(unsigned char k, int, int)
    case 'c':
       uni->bodies.clear();
       uni->nodes.clear();
+      printf("Cleared...\n");
       break;
 
    case 'v':
@@ -700,6 +701,18 @@ void cb_keyboard(unsigned char k, int, int)
 
    case 'b':
       uni->bruteforce = !uni->bruteforce;
+      break;
+
+   case 'g':
+      {
+         flt r = frnd(200) + 50;
+         Vec pos = Vec{{frnd(uni->size - r) - (uni->size - r) / 2, frnd(uni->size - r) - (uni->size - r) / 2}};
+         Vec vel = Vec{{frnd(10)-5, frnd(10)-5}};
+         flt rot = frnd(1) < 0.5 ? -1 : 1;
+         u32 body_count = u32(frnd(800)+200);
+         printf("galaxy %u size %f pos %f %f vel %f %f rot %f\n", body_count, r, pos[0], pos[1], vel[0], vel[1], rot);
+         create_galaxy(*uni, pos, vel, r, body_count, uni->bodies, rot);
+      }
       break;
    }
 }
