@@ -38,7 +38,6 @@ namespace bh
 // space but the actual bodies (thing BVH or KD-Tree).
 
 const auto G = 1.0e-4f;
-const auto max_coord = 1000.f;
 
 typedef std::uint32_t u32;
 typedef float flt;
@@ -193,11 +192,7 @@ struct Universe
 
    struct Work {
       u32 id;
-      pthread_t th;
       Universe *u;
-
-      pthread_mutex_t m;
-      pthread_cond_t  c;
    };
 
    enum { NumThreads = 8 };
@@ -427,19 +422,24 @@ void *update_thread(void *data)
 
    while (1)
    {
-      pthread_mutex_lock(&w.m);
-      pthread_cond_wait(&w.c, &w.m);
+      pthread_barrier_wait(&u.tb);
 
       auto const dt = u.param.dt;
       auto const squared_beta = u.param.beta * u.param.beta;
-      u32 const iend = u.bodies.size();
-      for (u32 i = w.id; i < iend; i += Universe::NumThreads)
+      auto const iend = u.bodies.size();
+
+      auto const nwork = iend / Universe::NumThreads;
+      auto const wbegin = w.id * nwork;
+      auto const wend = std::min((w.id + 1) * nwork, iend);
+
+      for (auto i = wbegin; i < wend; i++)
       {
-         u.bodies[i].acc = Vec();
+         Body &b = u.bodies[i];
+         b.acc = Vec();
          update_body(u, 0, i, squared_beta);
+         b.vel += b.acc * dt;        //      dt velocity update
       }
 
-      pthread_mutex_unlock(&w.m);
       pthread_barrier_wait(&u.tb);
    }
 
@@ -464,9 +464,8 @@ void init_threading(Universe &u)
       {
          u.threads[i].id = i;
          u.threads[i].u = &u;
-         u.threads[i].c = PTHREAD_COND_INITIALIZER;
-         u.threads[i].m = PTHREAD_MUTEX_INITIALIZER;
-         pthread_create(&u.threads[i].th, &a, update_thread, u.threads + i);
+         pthread_t t;
+         pthread_create(&t, &a, update_thread, u.threads + i);
       }
 
       pthread_attr_destroy(&a);
@@ -478,40 +477,33 @@ void update(Universe &u)
    build_bhtree(u);
 
    auto const dt = u.param.dt;
-   auto const squared_beta = u.param.beta * u.param.beta;
-   u32 const iend = u.bodies.size();
 
-   for (u32 i = 0; i < iend; i++)
-   {
-      Body &b = u.bodies[i];
+   std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
       b.pos += b.vel * 0.5f * dt; // half dt psition update
-   }
+   });
 
 #if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
    init_threading(u);
-   for (int i = 0; i < Universe::NumThreads; i++)
-   {
-      pthread_cond_signal(&u.threads[i].c);
-   }
-   pthread_barrier_wait(&u.tb);
+   pthread_barrier_wait(&u.tb); // first sync for workers to start
+   pthread_barrier_wait(&u.tb); // second sync for workers to finish
 #else
-   #ifdef _OPENMP
-   #pragma omp parallel for schedule(static,500)
-   #endif
-   for (u32 i = 0; i < iend; i++)
+   auto const squared_beta = u.param.beta * u.param.beta;
+   auto const iend = u.bodies.size();
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,500)
+#endif
+   for (auto i = 0u; i < iend; i++)
    {
       Body &b = u.bodies[i];
       b.acc = Vec();
       update_body(u, 0, i, squared_beta);
+      b.vel += b.acc * dt;        //      dt velocity update
    }
 #endif
 
-   for (u32 i = 0; i < iend; i++)
-   {
-      Body &b = u.bodies[i];
-      b.vel += b.acc * dt;        //      dt velocity update
+   std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
       b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
-   }
+   });
 }
 
 void add_n_random(Universe &u, unsigned body_count, bool circle)
