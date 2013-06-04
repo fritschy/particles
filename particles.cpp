@@ -430,19 +430,13 @@ void *update_thread(void *data)
       pthread_mutex_lock(&w.m);
       pthread_cond_wait(&w.c, &w.m);
 
-      const auto dt = u.param.dt;
-      const auto squared_beta = u.param.beta * u.param.beta;
-
+      auto const dt = u.param.dt;
+      auto const squared_beta = u.param.beta * u.param.beta;
       u32 const iend = u.bodies.size();
       for (u32 i = w.id; i < iend; i += Universe::NumThreads)
       {
-         Body &b = u.bodies[i];
-
-         b.pos += b.vel * 0.5f * dt; // half dt psition update
-         b.acc = Vec();
+         u.bodies[i].acc = Vec();
          update_body(u, 0, i, squared_beta);
-         b.vel += b.acc * dt;        //      dt velocity update
-         b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
       }
 
       pthread_mutex_unlock(&w.m);
@@ -479,45 +473,45 @@ void init_threading(Universe &u)
    }
 }
 
-void update_threaded(Universe &u)
-{
-   init_threading(u);
-
-   for (int i = 0; i < Universe::NumThreads; i++)
-   {
-      pthread_cond_signal(&u.threads[i].c);
-   }
-
-   pthread_barrier_wait(&u.tb);
-}
-
 void update(Universe &u)
 {
    build_bhtree(u);
 
-#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
-   update_threaded(u);
-#else
-   const auto dt = u.param.dt;
-   const auto squared_beta = u.param.beta * u.param.beta;
-
+   auto const dt = u.param.dt;
+   auto const squared_beta = u.param.beta * u.param.beta;
    u32 const iend = u.bodies.size();
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,500)
-#endif
+
    for (u32 i = 0; i < iend; i++)
    {
       Body &b = u.bodies[i];
-
       b.pos += b.vel * 0.5f * dt; // half dt psition update
+   }
 
+#if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
+   init_threading(u);
+   for (int i = 0; i < Universe::NumThreads; i++)
+   {
+      pthread_cond_signal(&u.threads[i].c);
+   }
+   pthread_barrier_wait(&u.tb);
+#else
+   #ifdef _OPENMP
+   #pragma omp parallel for schedule(static,500)
+   #endif
+   for (u32 i = 0; i < iend; i++)
+   {
+      Body &b = u.bodies[i];
       b.acc = Vec();
       update_body(u, 0, i, squared_beta);
+   }
+#endif
 
+   for (u32 i = 0; i < iend; i++)
+   {
+      Body &b = u.bodies[i];
       b.vel += b.acc * dt;        //      dt velocity update
       b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
    }
-#endif
 }
 
 void add_n_random(Universe &u, unsigned body_count, bool circle)
