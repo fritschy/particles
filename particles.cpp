@@ -198,7 +198,7 @@ struct Universe
    enum { NumThreads = 8 };
 
    Work threads[NumThreads];
-   pthread_barrier_t tb;
+   pthread_barrier_t tb, tb2;
 
    inline Universe()
       : bodies()
@@ -435,9 +435,23 @@ void *update_thread(void *data)
       for (auto i = wbegin; i < wend; i++)
       {
          Body &b = u.bodies[i];
+         b.pos += b.vel * 0.5f * dt; // half dt psition update
+      }
+      pthread_barrier_wait(&u.tb2); // wai until all have finished the first step
+
+      for (auto i = wbegin; i < wend; i++)
+      {
+         Body &b = u.bodies[i];
          b.acc = Vec();
          update_body(u, 0, i, squared_beta);
          b.vel += b.acc * dt;        //      dt velocity update
+      }
+
+      pthread_barrier_wait(&u.tb2); // wait until all have finished the sesond step
+      for (auto i = wbegin; i < wend; i++)
+      {
+         Body &b = u.bodies[i];
+         b.pos += b.vel * 0.5f * dt; // half dt psition update
       }
 
       pthread_barrier_wait(&u.tb);
@@ -455,6 +469,7 @@ void init_threading(Universe &u)
       inited = true;
 
       pthread_barrier_init(&u.tb, NULL, Universe::NumThreads+1);
+      pthread_barrier_init(&u.tb2, NULL, Universe::NumThreads);
 
       pthread_attr_t a;
       pthread_attr_init(&a);
@@ -476,19 +491,19 @@ void update(Universe &u)
 {
    build_bhtree(u);
 
-   auto const dt = u.param.dt;
-
-   std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
-      b.pos += b.vel * 0.5f * dt; // half dt psition update
-   });
-
 #if !defined(_OPENMP) && !defined(NO_THREADED_UPDATE)
    init_threading(u);
    pthread_barrier_wait(&u.tb); // first sync for workers to start
    pthread_barrier_wait(&u.tb); // second sync for workers to finish
 #else
+   auto const dt = u.param.dt;
    auto const squared_beta = u.param.beta * u.param.beta;
    auto const iend = u.bodies.size();
+
+   std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
+      b.pos += b.vel * 0.5f * dt; // half dt psition update
+   });
+
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static,500)
 #endif
@@ -499,15 +514,17 @@ void update(Universe &u)
       update_body(u, 0, i, squared_beta);
       b.vel += b.acc * dt;        //      dt velocity update
    }
-#endif
 
    std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
       b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
    });
+#endif
 }
 
 void add_n_random(Universe &u, unsigned body_count, bool circle)
 {
+   u.bodies.reserve(u.bodies.size() + body_count);
+
    for (unsigned i = 0; i < body_count; i++)
    {
       Vec pos = Vec{{frnd(2)-1, frnd(2)-1}} * u.size;
