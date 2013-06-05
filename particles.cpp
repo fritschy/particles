@@ -556,7 +556,7 @@ void show_bhtree(Universe &u)
 
    if (u.show_tree)
    {
-      glColor3f(0.7f,1.0f,0.7f);
+      glColor3f(0.0f,0.2f,0.0f);
       std::for_each(u.nodes.cbegin(), u.nodes.cend(),
             [u](Node const &q) {
                if (q.size / width > 2.f)
@@ -576,9 +576,12 @@ void show_bhtree(Universe &u)
             });
    }
 
+   glEnable(GL_BLEND);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
    if (u.show_vel)
    {
-      glColor3f(1,0,0);
+      glColor4f(1.f,0.3f,0.3f,0.5f);
       glBegin(GL_LINES);
       std::for_each(u.bodies.cbegin(), u.bodies.cend(),
             [pxl_per_unit](Body const &b) {
@@ -591,7 +594,7 @@ void show_bhtree(Universe &u)
    if (u.show_acc)
    {
       pxl_per_unit *= 10.f; // ... not sure if ...
-      glColor3f(0,0,1);
+      glColor4f(0.3f,0.3f,1.f,0.5f);
       glBegin(GL_LINES);
       std::for_each(u.bodies.cbegin(), u.bodies.cend(),
             [pxl_per_unit](Body const &b) {
@@ -601,10 +604,12 @@ void show_bhtree(Universe &u)
       glEnd();
    }
 
-   glColor3f(0,0,0);
+   glColor4f(1,1,1,0.5f);
    glEnableClientState(GL_VERTEX_ARRAY);
    glVertexPointer(2, GL_FLOAT, sizeof(Body), u.bodies.front().pos.d);
    glDrawArrays(GL_POINTS, 0, u.bodies.size());
+
+   glDisable(GL_BLEND);
 }
 
 void cb_display(void)
@@ -614,9 +619,8 @@ void cb_display(void)
    glLoadIdentity();
    gluOrtho2D(-uni->size-1, uni->size, -uni->size-1, uni->size);
 
-   glClearColor(1, 1, 1, 1);
+   glClearColor(0, 0, 0, 0.3f);
    glClear(GL_COLOR_BUFFER_BIT);
-
 
    show_bhtree(*uni);
 
