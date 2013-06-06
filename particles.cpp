@@ -38,6 +38,7 @@ namespace bh
 // space but the actual bodies (thing BVH or KD-Tree).
 
 auto G = 1.0e-4f;
+auto point_size = 1.f;
 
 typedef std::uint32_t u32;
 
@@ -633,6 +634,8 @@ void show_bhtree(Universe &u)
       glEnd();
    }
 
+   glPointSize(point_size);
+
    glColor4f(1,1,1,0.5f);
    glEnableClientState(GL_VERTEX_ARRAY);
    glVertexPointer(2, GL_FLOAT, sizeof(Body), u.bodies.front().pos.d);
@@ -811,6 +814,7 @@ void make_universe(Universe &u, char **argv)
    {
       ifeq("dt") { u.param.dt = atof(*++argv); }
       elifeq("G") { G = atof(*++argv); }
+      elifeq("point_size") { point_size = atof(*++argv); }
       elifeq("benchmark") {
          benchmark(u);
          exit(0);
