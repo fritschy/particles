@@ -756,7 +756,7 @@ void cb_keyboard(unsigned char k, int, int)
       {
          flt r = frnd(200) + 50;
          Vec pos = Vec{{frnd(uni->size - r) - (uni->size - r) / 2, frnd(uni->size - r) - (uni->size - r) / 2}};
-         Vec vel = Vec{{frnd(2)-1, frnd(2)-1}} * 2.f;
+         Vec vel = Vec{{frnd(2)-1, frnd(2)-1}} * 1.5f;
          flt rot = frnd(1) < 0.5 ? -1 : 1;
          u32 body_count = u32(frnd(800)+200);
          printf("galaxy %u size %f pos %f %f vel %f %f rot %f\n", body_count, r, pos[0], pos[1], vel[0], vel[1], rot);
@@ -803,8 +803,8 @@ void make_universe(Universe &u, char **argv)
 
    char const *two_galaxies[] = {
       "min_mass", "100", "max_mass", "100", "dt", "0.0125", "size", "800",
-      "galaxy", "2500", "pos", "0", "150", "vel", "4", "0", "size", "50", "rot", "-1",
-      "galaxy", "7500", "pos", "0", "-300", "vel", "-1", "0", "size", "300", "rot", "-1",
+      "galaxy", "1500", "pos", "0", "150", "vel", "0.3", "0", "size", "30", "rot", "-1",
+      "galaxy", "7500", "pos", "0", "-150", "vel", "-0.15", "0", "size", "200", "rot", "-1",
       NULL
    };
 
