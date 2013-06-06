@@ -100,6 +100,26 @@ struct Vec
    }
 };
 
+float Q_rsqrt( float number )
+{
+   float x2;
+   const float threehalfs = 1.5F;
+
+   union {
+      u32   i;
+      float y;
+   };
+
+   x2 = number * 0.5F;
+   y  = number;
+   i  = 0x5f3759df - ( i >> 1 );               // what the fuck?
+   y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
+   y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+   y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+
+   return y;
+}
+
 inline Vec operator+(Vec const &a, Vec const &b) { return Vec{{a[0]+b[0], a[1]+b[1]}}; }
 inline Vec operator-(Vec const &a, Vec const &b) { return Vec{{a[0]-b[0], a[1]-b[1]}}; }
 
@@ -110,6 +130,8 @@ inline Vec operator+=(Vec &a, Vec const &b) { a[0]+=b[0]; a[1]+=b[1]; return a; 
 inline Vec operator-=(Vec &a, Vec const &b) { a[0]-=b[0]; a[1]-=b[1]; return a; }
 
 inline flt dot(Vec const &a, Vec const &b) { return a[0]*b[0] + a[1]*b[1]; }
+
+inline Vec normalize(Vec const &a) { return a * Q_rsqrt(dot(a, a)); }
 
 struct Body
 {
@@ -379,7 +401,7 @@ inline void accelerate_body(Body &i, Vec const &j_pos, flt const j_mass)
 
    // for momentum conservation would need to divide by i's mass, so
    // left it out completely.
-   i.acc += (d / std::sqrt(r)) * F;
+   i.acc += normalize(d) * F;
 }
 
 inline void update_body_acceleration(Body &i, Node const &j)
