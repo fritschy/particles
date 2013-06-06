@@ -37,8 +37,9 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
-auto G = 1.0e-4f;
-auto point_size = 1.f;
+auto G = 1.0e-4f; //6.693e-11f; //1.0e-4f;
+auto point_size = 2.f;
+auto ETA = 1.f;
 
 typedef std::uint32_t u32;
 
@@ -336,12 +337,16 @@ void bhtree_insert(Universe &u, u32 q, u32 b, int depth)
 
 void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_count, std::vector<Body> &res, flt rot)
 {
-   res.reserve(res.size() + body_count);
+   res.reserve(res.size() + body_count + 1);
+
+   const auto mult = 1e1f;
+   const auto cm = body_count * u.param.max_mass * 0.5f * mult;
+   res.push_back(Body{center, velocity, Vec(), cm});
 
    for (size_t i = 0; i < body_count; i++)
    {
       /* Vec pos; */
-      flt x = frnd(size * 0.8f) + size * 0.001f;
+      flt x = frnd(size * 0.8f) + size * 0.003f;
 
       flt phi = flt(frnd(2 * M_PI));
 
@@ -350,7 +355,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
       Vec pos = Vec{{1, 0}};
       // body_count / 1000.f normalizes the whole thing to my testing
       // number of 1000 bodies.
-      Vec vel = Vec{{0, rot * std::sqrt(G * mass * (body_count / 1000.f) * x)}};
+      Vec vel = Vec{{0, rot * std::sqrt(G * cm / x)}};
 
       /* Vec vel = Vec{{0, std::sqrt(G * mass * (max_mass * body_count / 250000000.f))}}; */
       //Vec vel = Vec{{0, std::sqrt(G * (max_mass - min_mass) * body_count * 0.00036125f)}};
@@ -397,7 +402,7 @@ void depopulate_bhtree(Universe &u)
 inline void accelerate_body(Body &i, Vec const &j_pos, flt const j_mass)
 {
    auto const d = j_pos - i.pos;
-   auto const r = dot(d, d);
+   auto const r = dot(d, d) + ETA;
    auto const F = G * j_mass / r;
 
    // for momentum conservation would need to divide by i's mass, so
@@ -667,16 +672,24 @@ void cb_reshape(int w, int h)
 
 void cb_idle(void)
 {
-   flt t0 = useconds();
-   update(*uni);
-   t0 = useconds() - t0;
+   flt tf = 0, t0 = 0;
+   int n = 0;
+
+   while (tf + t0 < 1000000.f / 60.f)
+   {
+      flt t0 = useconds();
+      update(*uni);
+      t0 = useconds() - t0;
+      tf += t0;
+      n++;
+   }
 
    char buf[100];
-   snprintf(buf, sizeof(buf), "%s %u :: dt=%f Physics @ %0.2ffps",
+   snprintf(buf, sizeof(buf), "%s %u :: dt=%f Physics @ %0.2ffps (%d)",
          uni->bruteforce ? "brute-force" : "Barnes-Hut",
          unsigned(uni->bodies.size()),
          uni->param.dt,
-         1e6f / t0);
+         1e6f / (tf / n), n);
    glutSetWindowTitle(buf);
 
    glutPostRedisplay();
@@ -743,7 +756,7 @@ void cb_keyboard(unsigned char k, int, int)
       {
          flt r = frnd(200) + 50;
          Vec pos = Vec{{frnd(uni->size - r) - (uni->size - r) / 2, frnd(uni->size - r) - (uni->size - r) / 2}};
-         Vec vel = Vec{{frnd(10)-5, frnd(10)-5}};
+         Vec vel = Vec{{frnd(2)-1, frnd(2)-1}} * 2.f;
          flt rot = frnd(1) < 0.5 ? -1 : 1;
          u32 body_count = u32(frnd(800)+200);
          printf("galaxy %u size %f pos %f %f vel %f %f rot %f\n", body_count, r, pos[0], pos[1], vel[0], vel[1], rot);
@@ -789,20 +802,22 @@ void make_universe(Universe &u, char **argv)
    u = Universe(1000.f, 0.05f, 0.5f);
 
    char const *two_galaxies[] = {
-      "min_mass", "100", "max_mass", "100", "dt", "0.125", "size", "800",
+      "min_mass", "100", "max_mass", "100", "dt", "0.0125", "size", "800",
       "galaxy", "2500", "pos", "0", "150", "vel", "4", "0", "size", "50", "rot", "-1",
       "galaxy", "7500", "pos", "0", "-300", "vel", "-1", "0", "size", "300", "rot", "-1",
       NULL
    };
 
    char const *galaxy[] = {
-      "min_mass", "100", "max_mass", "100", "dt", "0.125", "size", "1000",
+      "min_mass", "100", "max_mass", "100", "dt", "0.0125", "size", "1000",
       "galaxy", "10000", "size", "1000",
       NULL
    };
 
    char const *solsys[] = {
-      "G", "6.693e-11", "size", "235e9",
+      "G", "6.693e-11",
+      "size", "235e9",
+
       // sun
       "body", "1.9891e30",
       // mercury
@@ -832,6 +847,7 @@ void make_universe(Universe &u, char **argv)
    {
       ifeq("dt") { u.param.dt = atof(*++argv); }
       elifeq("G") { G = atof(*++argv); }
+      elifeq("eta") { ETA = atof(*++argv); }
       elifeq("point_size") { point_size = atof(*++argv); }
       elifeq("benchmark") {
          benchmark(u);
