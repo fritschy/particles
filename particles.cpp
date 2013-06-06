@@ -641,7 +641,7 @@ void show_bhtree(Universe &u)
 
    glPointSize(point_size);
 
-   glColor4f(1,1,1,0.5f);
+   glColor4f(1,1,1,0.2f);
    glEnableClientState(GL_VERTEX_ARRAY);
    glVertexPointer(2, GL_FLOAT, sizeof(Body), u.bodies.front().pos.d);
    glDrawArrays(GL_POINTS, 0, u.bodies.size());
