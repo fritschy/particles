@@ -37,10 +37,17 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
-const auto G = 1.0e-4f;
+auto G = 1.0e-4f;
 
 typedef std::uint32_t u32;
+
+#ifdef USE_DOUBLE
+typedef double flt
+#define GL_FLOAT GL_DOUBLE
+#define glVertex2fv glVertex2dv
+#else
 typedef float flt;
+#endif
 
 flt useconds()
 {
@@ -372,7 +379,7 @@ inline void accelerate_body(Body &i, Vec const &j_pos, flt const j_mass)
 
    // for momentum conservation would need to divide by i's mass, so
    // left it out completely.
-   i.acc += d * F;
+   i.acc += (d / std::sqrt(r)) * F;
 }
 
 inline void update_body_acceleration(Body &i, Node const &j)
@@ -777,10 +784,11 @@ void make_universe(Universe &u, char **argv)
 
 #define ifeq(x) if (std::strcmp(*argv, (x)) == 0 && printf("got %s\n", (x)))
 #define elifeq(x) else ifeq(x)
-#define atof(x) ([u](char const*a)->flt{ flt f = atof(a); printf("got %f\n", f); return f; })(x)
+#define atof(x) ([u](char const*a)->flt{ flt f = atof(a); printf("got %g\n", f); return f; })(x)
    while (*argv)
    {
       ifeq("dt") { u.param.dt = atof(*++argv); }
+      elifeq("G") { G = atof(*++argv); }
       elifeq("benchmark") {
          benchmark(u);
          exit(0);
