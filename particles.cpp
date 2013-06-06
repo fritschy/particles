@@ -801,6 +801,24 @@ void make_universe(Universe &u, char **argv)
       NULL
    };
 
+   char const *solsys[] = {
+      "G", "6.693e-11", "size", "235e9",
+      // sun
+      "body", "1.9891e30",
+      // mercury
+      "body", "3.302e23",    "pos", "57909175.0e3", "0",    "vel", "0", "47947.40069321917895390503",
+      // venus
+      "body", "4.8685e24",   "pos", "108210000.0e3", "0",   "vel", "0", "35075.6359725006440718531",
+      // earth
+      "body", "5.9736e24",   "pos", "149597890.0e3", "0",   "vel", "0", "29831.60633162660741273581",
+      // moon
+      "body", "7.348e22",    "pos", "149982295000", "0",    "vel", "0", "30857.70412959226502854974",
+      // mars
+      "body", "6.4185e23",   "pos", "227920000.0e3", "0",   "vel", "0", "24168.38180362685038388246",
+
+      NULL
+   };
+
    if (! *argv)
    {
       make_universe(u, (char**)two_galaxies);
@@ -852,6 +870,7 @@ void make_universe(Universe &u, char **argv)
       elifeq("scene") {
          argv++;
          ifeq("galaxy") { make_universe(u, (char**)galaxy); argv++; }
+         ifeq("sol") { make_universe(u, (char**)solsys); argv++; }
          elifeq("two-galaxies") { make_universe(u, (char**)two_galaxies); argv++; }
       }
       elifeq("body") {
