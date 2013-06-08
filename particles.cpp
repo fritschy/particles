@@ -40,6 +40,7 @@ namespace bh
 auto G = 1.0e-4f; //6.693e-11f; //1.0e-4f;
 auto point_size = 2.f;
 auto ETA = 1.f;
+auto damp = 1.f;
 
 typedef std::uint32_t u32;
 
@@ -486,6 +487,7 @@ void *update_thread(void *data)
       for (auto i = wbegin; i < wend; i++)
       {
          Body &b = u.bodies[i];
+         b.vel *= damp;
          b.pos += b.vel * 0.5f * dt; // half dt psition update
       }
 
@@ -551,6 +553,7 @@ void update(Universe &u)
    }
 
    std::for_each(u.bodies.begin(), u.bodies.end(), [dt](Body &b) {
+      b.vel *= damp;
       b.pos += b.vel * 0.5f * dt; // half dt position update with _new_ velocity
    });
 #endif
@@ -848,6 +851,7 @@ void make_universe(Universe &u, char **argv)
       ifeq("dt") { u.param.dt = atof(*++argv); }
       elifeq("G") { G = atof(*++argv); }
       elifeq("eta") { ETA = atof(*++argv); }
+      elifeq("damp") { damp = atof(*++argv); }
       elifeq("point_size") { point_size = atof(*++argv); }
       elifeq("benchmark") {
          benchmark(u);
