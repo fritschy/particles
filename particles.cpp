@@ -167,7 +167,7 @@ struct Node
 
    u32 childs[4];
    union {
-      u32 bodies[3];
+      u32 bodies[1];
       u32 state;
    };
    Vec corner;
