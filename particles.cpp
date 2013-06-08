@@ -769,7 +769,7 @@ void cb_keyboard(unsigned char k, int, int)
       {
          flt r = frnd(200) + 50;
          Vec pos = Vec{{frnd(uni->size - r) - (uni->size - r) / 2, frnd(uni->size - r) - (uni->size - r) / 2}};
-         Vec vel = Vec{{frnd(2)-1, frnd(2)-1}} * 1.5f;
+         Vec vel = Vec{{frnd(2)-1, frnd(2)-1}} * 0.5f;
          flt rot = frnd(1) < 0.5 ? -1 : 1;
          u32 body_count = u32(frnd(800)+200);
          printf("galaxy %u size %f pos %f %f vel %f %f rot %f\n", body_count, r, pos[0], pos[1], vel[0], vel[1], rot);
