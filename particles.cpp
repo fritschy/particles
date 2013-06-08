@@ -601,7 +601,7 @@ Universe *uni;
 
 void show_bhtree(Universe &u)
 {
-   flt pxl_per_unit = 3.f * width / (u.size * 2.f);
+   flt pxl_per_unit = 20 * (u.size * 2) / width;
 
    if (u.show_tree)
    {
@@ -635,20 +635,19 @@ void show_bhtree(Universe &u)
       std::for_each(u.bodies.cbegin(), u.bodies.cend(),
             [pxl_per_unit](Body const &b) {
                glVertex2fv(b.pos.d);
-               glVertex2fv((b.pos + b.vel * pxl_per_unit).d);
+               glVertex2fv((b.pos + normalize(b.vel) * pxl_per_unit).d);
             });
       glEnd();
    }
 
    if (u.show_acc)
    {
-      pxl_per_unit *= 10.f; // ... not sure if ...
       glColor4f(0.3f,0.3f,1.f,0.5f);
       glBegin(GL_LINES);
       std::for_each(u.bodies.cbegin(), u.bodies.cend(),
             [pxl_per_unit](Body const &b) {
                glVertex2fv(b.pos.d);
-               glVertex2fv((b.pos + b.acc * pxl_per_unit).d);
+               glVertex2fv((b.pos + normalize(b.acc) * pxl_per_unit).d);
             });
       glEnd();
    }
