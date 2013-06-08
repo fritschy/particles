@@ -123,18 +123,28 @@ float Q_rsqrt( float number )
    return y;
 }
 
+flt rsqrt(flt f)
+{
+#if defined(__x86__) || defined(__x86_64__)
+   return 1.f / std::sqrt(f);
+#else
+   return Q_rsqrt(f);
+#endif
+}
+
 inline Vec operator+(Vec const &a, Vec const &b) { return Vec{{a[0]+b[0], a[1]+b[1]}}; }
 inline Vec operator-(Vec const &a, Vec const &b) { return Vec{{a[0]-b[0], a[1]-b[1]}}; }
 
 inline Vec operator*(Vec const &a, flt b) { return Vec{{a[0]*b, a[1]*b}}; }
 inline Vec operator/(Vec const &a, flt b) { return Vec{{a[0]/b, a[1]/b}}; }
 
+inline Vec operator*=(Vec &a, flt b) { a[0]*=b; a[1]*=b; return a; }
 inline Vec operator+=(Vec &a, Vec const &b) { a[0]+=b[0]; a[1]+=b[1]; return a; }
 inline Vec operator-=(Vec &a, Vec const &b) { a[0]-=b[0]; a[1]-=b[1]; return a; }
 
 inline flt dot(Vec const &a, Vec const &b) { return a[0]*b[0] + a[1]*b[1]; }
 
-inline Vec normalize(Vec const &a) { return a * Q_rsqrt(dot(a, a)); }
+inline Vec normalize(Vec const &a) { return a * rsqrt(dot(a, a)); }
 
 struct Body
 {
