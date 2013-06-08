@@ -357,7 +357,8 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
    for (size_t i = 0; i < body_count; i++)
    {
       /* Vec pos; */
-      flt x = frnd(size * 0.8f) + size * 0.003f;
+      flt xx = std::pow(frnd(1.f), 1.4142f);
+      flt x = xx * size * 0.8f + size * 0.003f;
 
       flt phi = flt(frnd(2 * M_PI));
 
