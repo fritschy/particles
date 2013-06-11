@@ -248,7 +248,7 @@ struct Universe
    Work threads[NumThreads];
    pthread_barrier_t tb, tb2;
 
-   View view;
+   std::vector<View> views;
 
    inline Universe()
       : bodies()
@@ -262,7 +262,7 @@ struct Universe
       , threads()
       , tb()
       , tb2()
-      , view{Vec{{-size, -size}}, Vec{{size, size}}*2}
+      , views{View{Vec{{-size, -size}}, Vec{{size, size}}*2}}
    {
    }
 
@@ -278,7 +278,7 @@ struct Universe
       , threads()
       , tb()
       , tb2()
-      , view{Vec{{-size, -size}}, Vec{{size, size}}*2}
+      , views{View{Vec{{-size, -size}}, Vec{{size, size}}*2}}
    {
       param.dt = dt;
       param.beta = beta;
@@ -616,9 +616,12 @@ void orthoProj(View const &v)
 static int width, height;
 Universe *uni;
 
+Vec drag[2];
+bool dragging;
+
 void show_bhtree(Universe &u)
 {
-   flt pxl_per_unit = 20 * (u.size * 2) / width;
+   flt pxl_per_unit = 20 * (std::min(u.views.back().dim[0], u.views.back().dim[1]) * 2) / width;
 
    if (u.show_tree)
    {
@@ -677,6 +680,24 @@ void show_bhtree(Universe &u)
    glDrawArrays(GL_POINTS, 0, u.bodies.size());
 
    glDisable(GL_BLEND);
+
+   if (dragging)
+   {
+      glColor4f(1,1,0,1);
+
+      Vec v = drag[0];
+      Vec dv = drag[1]-drag[0];
+
+      glBegin(GL_LINE_LOOP);
+      glVertex2fv(v.d);
+      v[0] += dv[0];
+      glVertex2fv(v.d);
+      v[1] += dv[1];
+      glVertex2fv(v.d);
+      v[0] -= dv[0];
+      glVertex2fv(v.d);
+      glEnd();
+   }
 }
 
 void cb_display(void)
@@ -684,7 +705,7 @@ void cb_display(void)
    glViewport(0, 0, width, height);
 
    glLoadIdentity();
-   orthoProj(uni->view);
+   orthoProj(uni->views.back());
 
    glClearColor(0, 0, 0, 0.3f);
    glClear(GL_COLOR_BUFFER_BIT);
@@ -796,6 +817,49 @@ void cb_keyboard(unsigned char k, int, int)
    }
 }
 
+Vec window_to_view(int x, int y)
+{
+   y = height - y;
+   return Vec{{flt(x) / flt(width)  * uni->views.back().dim[0] + uni->views.back().pos[0],
+               flt(y) / flt(height) * uni->views.back().dim[1] + uni->views.back().pos[1]}};
+}
+
+void cb_mouse(int button, int state, int x, int y)
+{
+   if (button == GLUT_LEFT_BUTTON)
+   {
+      auto const start = state == GLUT_DOWN;
+      drag[!start] = window_to_view(x, y);
+      printf("Translated window coords (%d, %d) to view (%f, %f)\n", x, y, drag[!start][0], drag[!start][1]);
+      dragging = start;
+      if (start)
+      {
+         drag[start] = drag[!start];
+      }
+      else
+      {
+         if (drag[0][0] > drag[1][0])
+            std::swap(drag[0][0], drag[1][0]);
+         if (drag[0][1] > drag[1][1])
+            std::swap(drag[0][1], drag[1][1]);
+         uni->views.push_back(View{drag[0], drag[1] - drag[0]});
+      }
+   }
+   else if (button == GLUT_RIGHT_BUTTON && state == GLUT_UP)
+   {
+      if (uni->views.size() > 1)
+         uni->views.pop_back();
+   }
+}
+
+void cb_motion(int x, int y)
+{
+   if (dragging)
+   {
+      drag[1] = window_to_view(x, y);
+   }
+}
+
 void run_glut(int argc, char **argv, Universe &u)
 {
    uni = &u;
@@ -809,6 +873,8 @@ void run_glut(int argc, char **argv, Universe &u)
    glutReshapeFunc(cb_reshape);
    glutKeyboardFunc(cb_keyboard);
    glutIdleFunc(cb_idle);
+   glutMouseFunc(cb_mouse);
+   glutMotionFunc(cb_motion);
 
    glutMainLoop();
 
@@ -910,7 +976,7 @@ void make_universe(Universe &u, char **argv)
          }
          exit(1);
       }
-      elifeq("size") { u.size = atof(*++argv); u.view = View{Vec{{-u.size, -u.size}}, Vec{{u.size, u.size}}*2}; }
+      elifeq("size") { u.size = atof(*++argv); u.views.back() = View{Vec{{-u.size, -u.size}}, Vec{{u.size, u.size}}*2}; }
       elifeq("beta") { u.param.beta = atof(*++argv); }
       elifeq("max_mass") { u.param.max_mass = atof(*++argv); }
       elifeq("min_mass") { u.param.min_mass = atof(*++argv); }
