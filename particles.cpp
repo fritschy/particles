@@ -203,6 +203,12 @@ struct Node
    }
 };
 
+struct View
+{
+   Vec pos;
+   Vec dim;
+};
+
 struct Universe
 {
    std::vector<Body> bodies;
@@ -242,6 +248,8 @@ struct Universe
    Work threads[NumThreads];
    pthread_barrier_t tb, tb2;
 
+   View view;
+
    inline Universe()
       : bodies()
       , nodes()
@@ -253,6 +261,8 @@ struct Universe
       , show_acc()
       , threads()
       , tb()
+      , tb2()
+      , view{Vec{{-size, -size}}, Vec{{size, size}}*2}
    {
    }
 
@@ -267,6 +277,8 @@ struct Universe
       , show_acc()
       , threads()
       , tb()
+      , tb2()
+      , view{Vec{{-size, -size}}, Vec{{size, size}}*2}
    {
       param.dt = dt;
       param.beta = beta;
@@ -595,6 +607,11 @@ void add_n_random(Universe &u, unsigned body_count, bool circle)
    }
 }
 
+void orthoProj(View const &v)
+{
+   glOrtho(v.pos[0], v.pos[0]+v.dim[0], v.pos[1], v.pos[1]+v.dim[1], 0, 1);
+}
+
 #ifdef USE_GLUT
 static int width, height;
 Universe *uni;
@@ -667,7 +684,7 @@ void cb_display(void)
    glViewport(0, 0, width, height);
 
    glLoadIdentity();
-   gluOrtho2D(-uni->size-1, uni->size, -uni->size-1, uni->size);
+   orthoProj(uni->view);
 
    glClearColor(0, 0, 0, 0.3f);
    glClear(GL_COLOR_BUFFER_BIT);
@@ -893,7 +910,7 @@ void make_universe(Universe &u, char **argv)
          }
          exit(1);
       }
-      elifeq("size") { u.size = atof(*++argv); }
+      elifeq("size") { u.size = atof(*++argv); u.view = View{Vec{{-u.size, -u.size}}, Vec{{u.size, u.size}}*2}; }
       elifeq("beta") { u.param.beta = atof(*++argv); }
       elifeq("max_mass") { u.param.max_mass = atof(*++argv); }
       elifeq("min_mass") { u.param.min_mass = atof(*++argv); }
