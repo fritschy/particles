@@ -688,9 +688,9 @@ void cb_idle(void)
    flt tf = 0, t0 = 0;
    int n = 0;
 
-   while (tf + t0 < 1000000.f / 60.f)
+   /* while (tf + t0 < 1000000.f / 60.f) */
    {
-      flt t0 = useconds();
+      t0 = useconds();
       update(*uni);
       t0 = useconds() - t0;
       tf += t0;
@@ -739,7 +739,7 @@ void cb_keyboard(unsigned char k, int, int)
       uni->show_tree = !uni->show_tree;
       break;
 
-   case 'c':
+   case 'C':
       uni->bodies.clear();
       uni->nodes.clear();
       printf("Cleared...\n");
@@ -765,9 +765,9 @@ void cb_keyboard(unsigned char k, int, int)
       uni->bruteforce = !uni->bruteforce;
       break;
 
-   case 'g':
+   case 'G':
       {
-         flt r = frnd(200) + 50;
+         flt r = frnd(uni->size / 5.f) + uni->size / 20.f;
          Vec pos = Vec{{frnd(uni->size - r) - (uni->size - r) / 2, frnd(uni->size - r) - (uni->size - r) / 2}};
          Vec vel = Vec{{frnd(2)-1, frnd(2)-1}} * 0.5f;
          flt rot = frnd(1) < 0.5 ? -1 : 1;
