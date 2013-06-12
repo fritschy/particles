@@ -607,7 +607,10 @@ void add_n_random(Universe &u, unsigned body_count, bool circle)
 
 void orthoProj(View const &v)
 {
-   glOrtho(v.pos[0], v.pos[0]+v.dim[0], v.pos[1], v.pos[1]+v.dim[1], 0, 1);
+   Vec x = Vec{{v.pos[0], v.pos[0]+v.dim[0]}};
+   Vec y = Vec{{v.pos[1], v.pos[1]+v.dim[1]}};
+
+   glOrtho(x[0], x[1], y[0], y[1], 0, 1);
 }
 
 #ifdef USE_GLUT
@@ -681,7 +684,7 @@ void show_bhtree(Universe &u)
 
    if (dragging)
    {
-      glColor4f(1,1,0,1);
+      glColor4f(1,0,0,1);
 
       Vec v = drag[0];
       Vec dv = drag[1]-drag[0];
@@ -840,7 +843,9 @@ void cb_mouse(int button, int state, int x, int y)
             std::swap(drag[0][0], drag[1][0]);
          if (drag[0][1] > drag[1][1])
             std::swap(drag[0][1], drag[1][1]);
-         uni->views.push_back(View{drag[0], drag[1] - drag[0]});
+         Vec d = drag[1] - drag[0];
+         if (dot(d, d) > 1)
+            uni->views.push_back(View{drag[0], drag[1] - drag[0]});
       }
    }
    else if (button == GLUT_RIGHT_BUTTON && state == GLUT_UP)
