@@ -4,7 +4,7 @@ STD = -std=c++11
 CXXFLAGS = $(STD) $(OPT) $(WARN) -g -fno-rtti -fno-exceptions
 CXX ?= g++
 LD = $(CXX)
-LIBS = -pthread -lrt -lGL -lGLU -lglut
+LIBS = -pthread -lrt -lGL -lglut
 LDFLAGS = -Wl,-O3 $(LIBS)
 CPPFLAGS =
 
