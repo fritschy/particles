@@ -37,7 +37,7 @@ namespace bh
 // What about using a binary tree to subdivide space? What about not subdividing
 // space but the actual bodies (thing BVH or KD-Tree).
 
-auto G = 1.0e-4f; //6.693e-11f; //1.0e-4f;
+auto G = 1.0e-6f; //6.693e-11f; //1.0e-4f;
 auto point_size = 2.f;
 auto ETA = 1.f;
 auto damp = 1.f;
@@ -362,7 +362,7 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
 {
    res.reserve(res.size() + body_count + 1);
 
-   const auto mult = 1e1f;
+   const auto mult = 1e4f;
    const auto cm = body_count * u.param.max_mass * 0.5f * mult;
    res.push_back(Body{center, velocity, Vec(), cm});
 
