@@ -358,11 +358,18 @@ void bhtree_insert(Universe &u, u32 q, u32 b, int depth)
    bhtree_insert_next(u, q, b, depth);
 }
 
+flt speed_of_light_factor(Universe const &u, Vec const &v)
+{
+   // v = v_n / (sqrt(1 + (v_n / c)^2))
+   flt spd = dot(v, v) / (u.size * u.size);
+   return 1.f / std::sqrt(1.f + spd);
+}
+
 void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_count, std::vector<Body> &res, flt rot)
 {
    res.reserve(res.size() + body_count + 1);
 
-   const auto mult = 1e1f;
+   const auto mult = 1e2f;
    const auto cm = body_count * u.param.max_mass * 0.5f * mult;
    res.push_back(Body{center, velocity, Vec(), cm});
 
@@ -388,8 +395,12 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
       Vec p = Vec{{pos[0]*r[0]-pos[1]*r[1],pos[0]*r[1]+pos[1]*r[0]}};
       Vec v = Vec{{vel[0]*r[0]-vel[1]*r[1],vel[0]*r[1]+vel[1]*r[0]}};
 
+      /* v *= 1.f / speed_of_light_factor(u, v); */
+
       pos = p * x + center;
       vel = v + velocity;
+
+      vel *= 1.f / speed_of_light_factor(u, vel);
 
       res.push_back(Body{pos,
                          vel,
@@ -509,6 +520,7 @@ void *update_thread(void *data)
       {
          Body &b = u.bodies[i];
          b.vel *= damp;
+         b.vel *= speed_of_light_factor(u, b.vel);
          b.pos += b.vel * 0.5f * dt; // half dt psition update
       }
 
