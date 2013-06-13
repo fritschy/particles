@@ -323,7 +323,7 @@ inline void bhtree_insert_next(Universe &u, u32 q, u32 b, int depth)
 // in the universe... no fscken idea if it gives us an edge over a more naive aproach.
 void bhtree_insert(Universe &u, u32 q, u32 b, int depth)
 {
-   int const max_depth = 1000;
+   int const max_depth = 30000;
 
    if (depth > max_depth) // .... wtf?!
    {
@@ -856,7 +856,7 @@ void cb_mouse(int button, int state, int x, int y)
          if (drag[0][1] > drag[1][1])
             std::swap(drag[0][1], drag[1][1]);
          Vec d = drag[1] - drag[0];
-         if (dot(d, d) > 1)
+         if (dot(d, d) > 0)
             uni->views.push_back(View{drag[0], drag[1] - drag[0]});
       }
    }
