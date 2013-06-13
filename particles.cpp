@@ -381,7 +381,8 @@ void create_galaxy(Universe &u, Vec center, Vec velocity, flt size, size_t body_
 
       flt phi = flt(frnd(2 * M_PI));
 
-      flt mass = frnd(u.param.max_mass - u.param.min_mass)+u.param.min_mass;
+      xx = std::pow(frnd(1), 2.f);
+      flt mass = xx*(u.param.max_mass - u.param.min_mass)+u.param.min_mass;
 
       Vec pos = Vec{{1, 0}};
       // body_count / 1000.f normalizes the whole thing to my testing
@@ -925,6 +926,10 @@ void make_universe(Universe &u, char **argv)
       NULL
    };
 
+   char const *randm[] = {
+      "size", "100", "min_mass", "1e8", "max_mass", "1e8", "G", "1e-9", "dt", "0.2", "eta", "20", "random", "circle", "10000", NULL
+   };
+
    char const *solsys[] = {
       "G", "6.693e-11",
       "size", "235e9",
@@ -998,7 +1003,8 @@ void make_universe(Universe &u, char **argv)
       elifeq("scene") {
          argv++;
          ifeq("galaxy") { make_universe(u, (char**)galaxy); argv++; }
-         ifeq("sol") { make_universe(u, (char**)solsys); argv++; }
+         elifeq("random") { make_universe(u, (char**)randm); argv++; }
+         elifeq("sol") { make_universe(u, (char**)solsys); argv++; }
          elifeq("two-galaxies") { make_universe(u, (char**)two_galaxies); argv++; }
       }
       elifeq("body") {
