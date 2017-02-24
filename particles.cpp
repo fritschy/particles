@@ -4,6 +4,7 @@
 #include <cassert>
 #include <ctime>
 #include <cstring>
+#include <cmath>
 
 #ifdef _OPENMP
 #include <parallel/algorithm>
