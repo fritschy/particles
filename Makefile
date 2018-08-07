@@ -6,7 +6,7 @@ CXX ?= g++
 LD = $(CXX)
 LIBS = -pthread -lrt -lGL -lglut
 LDFLAGS = -Wl,-O3 $(LIBS)
-CPPFLAGS =
+CPPFLAGS = -D__USE_XOPEN
 
 ifneq ($(CROSS),)
 CXX := $(CROSS)$(CXX)
